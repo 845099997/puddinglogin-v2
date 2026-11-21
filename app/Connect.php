@@ -54,7 +54,7 @@ final class PlRainbow
             CURLOPT_CONNECTTIMEOUT => 4,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_USERAGENT => 'PuddingLogin/2.1.5 RainbowGateway',
+            CURLOPT_USERAGENT => 'PuddingLogin/2.1.6 RainbowGateway',
         ]);
         $out = curl_exec($ch);
         curl_close($ch);

@@ -2,7 +2,7 @@
 PuddingLogin 布丁云（广东）网络科技有限公司 ©版权所有
 QQ：845099997，邮箱：idcbdy@vip.qq.com
 
-> 自研统一身份认证平台 · 开源版 v2.1.5
+> 自研统一身份认证平台 · 开源版 v2.1.6
 
 PuddingLogin 是一款开源的统一身份认证系统，支持 QQ、微信、PuddingChat、微博、Google、Microsoft、GitHub 等十余种第三方平台的 OAuth 授权登录与账号绑定。
 

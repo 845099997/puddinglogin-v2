@@ -28,7 +28,7 @@ define('PL_SYS_KEY', $plSysKey);
 unset($plDbFile, $plDbConf, $plSysKey);
 // 版本号规则：三段式 主.次.修订，修订位满 9 进 1（2.0.9 → 2.1.0，2.9.9 → 3.0.0）
 // 每次功能更新或新增修改都必须递增此版本号。
-const PL_VERSION = '2.1.5';
+const PL_VERSION = '2.1.6';
 
 date_default_timezone_set('Asia/Shanghai');
 mb_internal_encoding('UTF-8');
@@ -80,9 +80,15 @@ function pl_session(): void
         return;
     }
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    // 会话回收时间与 Cookie 有效期统一对齐到 1 天：
+    // 原先 PHP 默认 gc_maxlifetime 仅 1440 秒，页面停留超过 24 分钟后会话被回收，
+    // 而 Cookie 仍保留 7 天，导致提交时 CSRF 令牌与已销毁的会话不匹配
+    $lifetime = 86400;
+    ini_set('session.gc_maxlifetime', (string) $lifetime);
+    ini_set('session.cookie_lifetime', '0');
     session_name('PLSESSION');
     session_set_cookie_params([
-        'lifetime' => 604800,
+        'lifetime' => $lifetime,
         'path' => '/',
         'httponly' => true,
         'samesite' => 'Lax',
