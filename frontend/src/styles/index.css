@@ -1,0 +1,279 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   主题变量：night（默认深色）/ day（暖色渐变）
+   white / ink / cream 等 token 通过变量反向，
+   一处改动即可覆盖全站背景、文字、边框与透明度叠加。
+   ============================================================ */
+:root,
+html[data-theme='night'] {
+  color-scheme: dark;
+  --pl-white: 255 255 255;
+  --pl-ink-950: 7 8 15;
+  --pl-ink-900: 10 11 20;
+  --pl-ink-850: 14 16 32;
+  --pl-ink-800: 18 20 42;
+  --pl-ink-700: 26 29 56;
+  --pl-ink-600: 38 42 74;
+  --pl-ink-500: 58 63 102;
+  --pl-cream: 247 244 238;
+  --pl-on-pudding: 7 8 15;
+  --pl-pudding-300: 255 184 107;
+  --pl-pudding-400: 255 158 77;
+  --pl-pudding-500: 255 138 61;
+  --pl-berry-300: 255 158 196;
+  --pl-berry-400: 255 123 174;
+  --pl-berry-500: 255 107 157;
+  --pl-berry-600: 232 80 138;
+  --pl-lilac-300: 196 181 253;
+  --pl-lilac-400: 167 139 250;
+  --pl-lilac-500: 139 107 240;
+  --pl-mint: 95 227 190;
+  --pl-sky: 94 200 245;
+  --pl-surface: 10 11 20;
+  --pl-surface-grad: radial-gradient(at 12% 6%, rgba(255, 138, 61, 0.16) 0px, transparent 52%),
+    radial-gradient(at 84% 10%, rgba(255, 107, 157, 0.13) 0px, transparent 48%),
+    radial-gradient(at 72% 90%, rgba(139, 107, 240, 0.14) 0px, transparent 52%);
+  --pl-scroll: 255 255 255;
+  --pl-scroll-a: 0.16;
+  --pl-scroll-b: 0.28;
+  --pl-grid: 255 255 255;
+  --pl-grid-a: 0.03;
+  --pl-selection-bg: rgba(255, 107, 157, 0.35);
+  --pl-selection-fg: #ffffff;
+  --pl-shadow-card: 0 24px 70px -40px rgba(0, 0, 0, 0.95);
+  --pl-shadow-strong: 0 30px 80px -40px rgba(0, 0, 0, 0.95);
+  --pl-shadow-soft: 0 8px 30px -12px rgba(7, 8, 15, 0.6);
+  --pl-field-ring: rgba(255, 107, 157, 0.14);
+  --pl-btn-glow: 0 18px 45px -22px rgba(255, 107, 157, 0.85);
+  --pl-grad-btn: linear-gradient(135deg, #ffb86b 0%, #ff6b9d 52%, #a78bfa 100%);
+  --pl-grad-text: linear-gradient(120deg, #ffb86b 0%, #ff6b9d 45%, #a78bfa 100%);
+}
+
+html[data-theme='day'] {
+  color-scheme: light;
+  /* white 反转为中性深灰，使 bg-white/5、border-white/10、text-white/70 等透明度叠加在浅底上依然成立 */
+  --pl-white: 30 41 59;
+  --pl-ink-950: 241 245 249;
+  --pl-ink-900: 249 251 253;
+  --pl-ink-850: 253 254 255;
+  --pl-ink-800: 244 247 251;
+  --pl-ink-700: 235 240 246;
+  --pl-ink-600: 222 229 238;
+  --pl-ink-500: 176 187 199;
+  --pl-cream: 21 28 39;
+  --pl-on-pudding: 24 32 44;
+  --pl-pudding-300: 233 138 58;
+  --pl-pudding-400: 235 126 40;
+  --pl-pudding-500: 236 118 28;
+  --pl-berry-300: 196 58 122;
+  --pl-berry-400: 208 62 128;
+  --pl-berry-500: 214 68 132;
+  --pl-berry-600: 186 48 104;
+  --pl-lilac-300: 112 88 210;
+  --pl-lilac-400: 124 100 220;
+  --pl-lilac-500: 110 84 214;
+  --pl-mint: 18 150 116;
+  --pl-sky: 20 130 186;
+  --pl-surface: 255 255 255;
+  --pl-surface-grad: linear-gradient(158deg, #ffffff 0%, #f8fafc 46%, #eef2f7 100%);
+  --pl-scroll: 100 116 139;
+  --pl-scroll-a: 0.2;
+  --pl-scroll-b: 0.36;
+  --pl-grid: 100 116 139;
+  --pl-grid-a: 0.05;
+  --pl-selection-bg: rgba(236, 118, 28, 0.16);
+  --pl-selection-fg: #15202b;
+  --pl-shadow-card: 0 20px 50px -34px rgba(15, 23, 42, 0.18);
+  --pl-shadow-strong: 0 26px 60px -34px rgba(15, 23, 42, 0.22);
+  --pl-shadow-soft: 0 8px 24px -14px rgba(15, 23, 42, 0.16);
+  --pl-field-ring: rgba(236, 118, 28, 0.14);
+  --pl-btn-glow: 0 16px 36px -22px rgba(236, 118, 28, 0.42);
+  --pl-grad-btn: linear-gradient(135deg, #ffb27a 0%, #ff8f5a 46%, #fb84ab 100%);
+  --pl-grad-text: linear-gradient(120deg, #c96f1c 0%, #c0467a 48%, #6f56c9 100%);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply antialiased;
+    background-color: rgb(var(--pl-surface));
+    background-image: var(--pl-surface-grad);
+    background-attachment: fixed;
+    color: rgb(var(--pl-cream));
+    font-feature-settings: 'cv02', 'cv03', 'cv04';
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+  ::selection {
+    background: var(--pl-selection-bg);
+    color: var(--pl-selection-fg);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--pl-scroll) / var(--pl-scroll-a)) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: rgb(var(--pl-scroll) / var(--pl-scroll-a));
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--pl-scroll) / var(--pl-scroll-b));
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  .pl-surface {
+    background-color: rgb(var(--pl-surface));
+    background-image: var(--pl-surface-grad);
+    background-attachment: fixed;
+  }
+  .glass {
+    @apply rounded-3xl border border-white/10 bg-white/[0.045] backdrop-blur-xl;
+    box-shadow: var(--pl-shadow-card);
+  }
+  .glass-strong {
+    @apply rounded-3xl border border-white/[0.12] bg-white/[0.07] backdrop-blur-2xl;
+    box-shadow: var(--pl-shadow-strong);
+  }
+  .field {
+    @apply w-full rounded-2xl border border-white/10 bg-ink-850/80 px-4 py-3 text-[15px] text-cream placeholder:text-white/30 outline-none transition;
+  }
+  .field:focus {
+    @apply border-berry-500/70 bg-ink-850;
+    box-shadow: 0 0 0 4px var(--pl-field-ring);
+  }
+  .field-error {
+    @apply border-red-500/60;
+  }
+  .label {
+    @apply mb-2 block text-[13px] font-medium tracking-wide text-white/55;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-[15px] font-semibold transition duration-200 disabled:cursor-not-allowed disabled:opacity-55;
+  }
+  .btn-primary {
+    @apply btn text-on-pudding;
+    background-image: var(--pl-grad-btn);
+    box-shadow: var(--pl-btn-glow);
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  .btn-ghost {
+    @apply btn border border-white/12 bg-white/[0.04] text-cream/85 hover:border-white/25 hover:bg-white/[0.08] hover:text-white;
+  }
+  .btn-danger {
+    @apply btn border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/65;
+  }
+  .card-hover {
+    @apply transition duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07];
+  }
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--pl-grad-text);
+  }
+  .divider {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-white/12 to-transparent;
+  }
+  .skeleton {
+    @apply animate-pulse rounded-xl bg-white/[0.06];
+  }
+  .theme-toggle {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white;
+  }
+}
+
+.grid-noise {
+  background-image: linear-gradient(rgb(var(--pl-grid) / var(--pl-grid-a)) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--pl-grid) / var(--pl-grid-a)) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 25%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 25%, transparent 78%);
+}
+
+/* 日间主题：压低环境光晕与品牌投影，减少大面积泛光带来的刺眼感 */
+html[data-theme='day'] .pl-ambient-glow {
+  opacity: 0.2;
+}
+html[data-theme='day'] .shadow-glow {
+  box-shadow: 0 14px 32px -20px rgba(236, 118, 28, 0.22);
+}
+html[data-theme='day'] .grid-noise {
+  opacity: 0.55;
+}
+
+/* 日间主题：固定色板与低透明度文字对比度补偿，避免浅底上看不清 */
+html[data-theme='day'] .text-red-200,
+html[data-theme='day'] .text-red-300,
+html[data-theme='day'] .hover\:text-red-200:hover {
+  color: #b42318;
+}
+html[data-theme='day'] .text-pudding-200 {
+  color: #b45309;
+}
+html[data-theme='day'] .text-berry-200 {
+  color: #b0246b;
+}
+html[data-theme='day'] .text-mint {
+  color: #0f766e;
+}
+html[data-theme='day'] .text-white\/20,
+html[data-theme='day'] .text-white\/22,
+html[data-theme='day'] .text-white\/25,
+html[data-theme='day'] .text-white\/30,
+html[data-theme='day'] .text-white\/35,
+html[data-theme='day'] .text-white\/38,
+html[data-theme='day'] .text-white\/40 {
+  color: rgb(71 85 105 / 0.72);
+}
+html[data-theme='day'] .text-white\/45,
+html[data-theme='day'] .text-white\/50,
+html[data-theme='day'] .text-white\/55 {
+  color: rgb(51 65 85 / 0.82);
+}
+html[data-theme='day'] .text-white\/60,
+html[data-theme='day'] .text-white\/65,
+html[data-theme='day'] .text-white\/70 {
+  color: rgb(30 41 59 / 0.86);
+}
+html[data-theme='day'] .label {
+  color: rgb(51 65 85 / 0.85);
+}
+html[data-theme='day'] .chip {
+  color: rgb(30 41 59 / 0.82);
+}
+html[data-theme='day'] .btn-ghost {
+  color: rgb(30 41 59 / 0.9);
+}
+html[data-theme='day'] .field::placeholder {
+  color: rgb(100 116 139 / 0.8);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+}

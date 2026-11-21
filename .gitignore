@@ -1,0 +1,20 @@
+# PHP
+/vendor/
+/storage/logs/
+/storage/sql/
+*.log
+.env
+# Node
+/frontend/node_modules/
+/frontend/dist/
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+# OS
+.DS_Store
+Thumbs.db
+# Assets build
+/assets/app.js
+/assets/app.css
