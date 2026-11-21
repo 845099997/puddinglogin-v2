@@ -16,5 +16,4 @@
 .DS_Store
 Thumbs.db
 # Assets build
-/assets/app.js
-/assets/app.css
+# 构建产物随仓库分发，下载即用；二次开发修改前端后请重新 npm run build 并提交 assets/

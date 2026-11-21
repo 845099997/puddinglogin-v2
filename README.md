@@ -29,7 +29,7 @@ PuddingLogin 是一款开源的统一身份认证系统，支持 QQ、微信、P
 - PHP >= 7.4（需启用 PDO、JSON、MBString、cURL 扩展）
 - MySQL >= 5.6 或 MariaDB >= 10.2
 - Nginx 或 Apache（推荐 Nginx）
-- Node.js >= 16（仅构建前端时需要）
+- Node.js >= 16（**可选**，仅二次开发修改前端时用于构建）
 
 ### 部署步骤
 
@@ -78,13 +78,19 @@ mysql -u root -p puddinglogin < database/schema.sql
 
 浏览器访问 `http://your-domain.com/` 进入安装向导。
 
-## 前端构建（可选）
+## 前端构建（仅二次开发需要）
+
+仓库已内置编译好的前端产物 `assets/app.js` 与 `assets/app.css`，**下载解压后即可直接运行，无需安装 Node.js、无需执行任何构建命令**。
+
+仅在修改了 `frontend/src/` 下的前端源码后，才需要重新构建：
 
 ```bash
 cd frontend
 npm install
 npm run build
 ```
+
+构建产物会输出到项目根目录的 `assets/`，提交时请一并提交 `assets/app.js` 与 `assets/app.css`，否则使用者拉取后前端会提示未构建。
 
 ## 目录结构
 
@@ -98,7 +104,10 @@ npm run build
 │   ├── Api.php            # 公共 API
 │   ├── Connect.php        # OAuth 连接器
 │   └── AdminApi.php       # 管理 API
-├── frontend/src/          # 前端源码
+├── assets/                # 前端构建产物（已内置，开箱即用）
+│   ├── app.js             # 打包后的脚本
+│   └── app.css            # 打包后的样式
+├── frontend/src/          # 前端源码（二次开发用）
 │   ├── pages/             # 页面组件
 │   ├── components/        # 通用组件
 │   └── lib/               # 工具库
