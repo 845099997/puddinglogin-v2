@@ -2,19 +2,33 @@
 declare(strict_types=1);
 
 define('PL_ROOT', dirname(__DIR__));
-// 数据库与系统密钥：优先读取安装向导生成的 storage/database.php，未提供时回退默认值
+// 数据库与系统密钥：读取安装向导生成的 storage/database.php，仓库内不内置任何数据库口令
 $plDbFile = PL_ROOT . '/storage/database.php';
 $plDbConf = is_file($plDbFile) ? (array) require $plDbFile : [];
 define('PL_DB_HOST', (string) ($plDbConf['host'] ?? '127.0.0.1'));
 define('PL_DB_PORT', (string) ($plDbConf['port'] ?? '3306'));
 define('PL_DB_NAME', (string) ($plDbConf['name'] ?? 'puddinglogin'));
 define('PL_DB_USER', (string) ($plDbConf['user'] ?? 'puddinglogin'));
-define('PL_DB_PASS', (string) ($plDbConf['pass'] ?? '2LAYJfeRiWtZ3Et3'));
-define('PL_SYS_KEY', (string) ($plDbConf['sys_key'] ?? 'pl-4f8c2a91d7e6b3c0'));
-unset($plDbFile, $plDbConf);
+define('PL_DB_PASS', (string) ($plDbConf['pass'] ?? ''));
+// 系统密钥：由安装向导随机生成；缺失时自动生成并写入 storage/sys_key.txt，避免所有部署共用同一密钥
+$plSysKey = trim((string) ($plDbConf['sys_key'] ?? ''));
+if ($plSysKey === '') {
+    $plKeyFile = PL_ROOT . '/storage/sys_key.txt';
+    if (is_file($plKeyFile)) {
+        $plSysKey = trim((string) @file_get_contents($plKeyFile));
+    }
+    if ($plSysKey === '') {
+        $plSysKey = 'pl-' . bin2hex(random_bytes(16));
+        @file_put_contents($plKeyFile, $plSysKey, LOCK_EX);
+        @chmod($plKeyFile, 0640);
+    }
+    unset($plKeyFile);
+}
+define('PL_SYS_KEY', $plSysKey);
+unset($plDbFile, $plDbConf, $plSysKey);
 // 版本号规则：三段式 主.次.修订，修订位满 9 进 1（2.0.9 → 2.1.0，2.9.9 → 3.0.0）
 // 每次功能更新或新增修改都必须递增此版本号。
-const PL_VERSION = '2.1.4';
+const PL_VERSION = '2.1.5';
 
 date_default_timezone_set('Asia/Shanghai');
 mb_internal_encoding('UTF-8');
@@ -33,9 +47,13 @@ function pl_pdo(): PDO
     return $pdo;
 }
 
-function pl_conf(string $key, $default = null)
+function pl_conf_cache(?array $replace = null): array
 {
     static $cache = null;
+    if ($replace !== null) {
+        $cache = $replace;
+        return $cache;
+    }
     if ($cache === null) {
         $cache = [];
         try {
@@ -47,6 +65,12 @@ function pl_conf(string $key, $default = null)
             $cache = [];
         }
     }
+    return $cache;
+}
+
+function pl_conf(string $key, $default = null)
+{
+    $cache = pl_conf_cache();
     return array_key_exists($key, $cache) ? $cache[$key] : $default;
 }
 
@@ -137,18 +161,82 @@ function pl_check_csrf(): void
     }
 }
 
-function pl_client_ip(): string
+function pl_ip_trusted(string $ip, string $list): bool
 {
-    foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_REAL_IP', 'HTTP_X_FORWARDED_FOR'] as $k) {
-        if (!empty($_SERVER[$k])) {
-            $parts = explode(',', (string) $_SERVER[$k]);
-            $ip = trim($parts[0]);
-            if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                return $ip;
-            }
+    foreach (preg_split('/[\s,]+/', $list) ?: [] as $item) {
+        $item = trim($item);
+        if ($item === '') {
+            continue;
+        }
+        if ($item === $ip) {
+            return true;
+        }
+        if (strpos($item, '/') === false) {
+            continue;
+        }
+        [$subnet, $bits] = array_pad(explode('/', $item, 2), 2, '');
+        $bits = (int) $bits;
+        $ipBin = @inet_pton($ip);
+        $netBin = @inet_pton((string) $subnet);
+        if ($ipBin === false || $netBin === false || strlen($ipBin) !== strlen($netBin)) {
+            continue;
+        }
+        $maxBits = strlen($ipBin) * 8;
+        if ($bits < 0 || $bits > $maxBits) {
+            continue;
+        }
+        $bytes = intdiv($bits, 8);
+        $rem = $bits % 8;
+        if ($bytes > 0 && substr($ipBin, 0, $bytes) !== substr($netBin, 0, $bytes)) {
+            continue;
+        }
+        if ($rem === 0) {
+            return true;
+        }
+        $mask = (0xFF << (8 - $rem)) & 0xFF;
+        if ((ord($ipBin[$bytes]) & $mask) === (ord($netBin[$bytes]) & $mask)) {
+            return true;
         }
     }
-    return (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+    return false;
+}
+function pl_client_ip(): string
+{
+    $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+    // 默认直连模式，只信任 REMOTE_ADDR，避免客户端伪造 X-Forwarded-For 绕过验证码限流与登录日志；
+    // 部署在 CDN / 反向代理之后时，在后台「IP 地址获取设置」选择「从请求头读取」并填写请求头与受信任代理
+    $mode = (string) pl_conf('ip_ip_mode', '');
+    if ($mode === '' && (string) pl_conf('trust_proxy', '0') === '1') {
+        $mode = 'header';
+    }
+    if ($mode !== 'header') {
+        return $remote;
+    }
+    // 受信任代理白名单（支持 CIDR）：留空表示不限制，仅建议在出口地址固定时留空
+    $trusted = trim((string) pl_conf('ip_ip_trusted', ''));
+    if ($trusted !== '' && !pl_ip_trusted($remote, $trusted)) {
+        return $remote;
+    }
+    $header = strtoupper(str_replace('-', '_', trim((string) pl_conf('ip_ip_header', ''))));
+    if ($header === '') {
+        $header = 'X_FORWARDED_FOR';
+    }
+    if (strpos($header, 'HTTP_') !== 0) {
+        $header = 'HTTP_' . $header;
+    }
+    $raw = (string) ($_SERVER[$header] ?? '');
+    // 从右向左跳过受信任代理，取第一个非代理地址，降低伪造前缀的影响
+    foreach (array_reverse(explode(',', $raw)) as $candidate) {
+        $ip = trim($candidate);
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            continue;
+        }
+        if ($trusted !== '' && pl_ip_trusted($ip, $trusted)) {
+            continue;
+        }
+        return $ip;
+    }
+    return $remote;
 }
 
 function pl_current_uid(): int
@@ -499,6 +587,10 @@ function pl_conf_set(string $key, string $value): void
 {
     $stmt = pl_pdo()->prepare('INSERT INTO pl_config (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)');
     $stmt->execute([$key, $value]);
+    // 写入数据库后同步进程内缓存，避免同一请求后续读取仍拿到旧值
+    $cache = pl_conf_cache();
+    $cache[$key] = $value;
+    pl_conf_cache($cache);
 }
 
 function pl_admin_log(int $uid, string $action, string $detail = '', string $target = ''): void

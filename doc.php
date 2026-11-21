@@ -5,9 +5,8 @@ require __DIR__ . '/app/core.php';
 $site = pl_site_public();
 $sitename = (string) ($site['sitename'] ?? 'PuddingLogin');
 $version = (string) ($site['version'] ?? PL_VERSION);
-$https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-$host = (string) ($_SERVER['HTTP_HOST'] ?? 'login.idcbdy.top');
-$base = ($https ? 'https://' : 'http://') . $host;
+// 优先使用后台配置的站点地址，未配置时按当前请求 Host 推导，避免写死某一域名
+$base = pl_self_base();
 $demoAppid = (string) pl_conf('default_appid', '');
 $sdkTypes = [];
 foreach (pl_platform_rows() as $r) {

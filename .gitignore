@@ -20,3 +20,8 @@ Thumbs.db
 # Runtime (运行时状态，不可提交，否则使用者会看到系统已安装)
 /storage/installed.lock
 /.well-known/acme-challenge/
+# 安装向导生成的凭据与密钥（含真实数据库口令，严禁提交）
+/storage/database.php
+/storage/sys_key.txt
+# 宝塔按站点生成的 open_basedir 配置，每个站点路径不同
+.user.ini

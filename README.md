@@ -2,7 +2,7 @@
 PuddingLogin 布丁云（广东）网络科技有限公司 ©版权所有
 QQ：845099997，邮箱：idcbdy@vip.qq.com
 
-> 自研统一身份认证平台 · 开源版 v2.1.4
+> 自研统一身份认证平台 · 开源版 v2.1.5
 
 PuddingLogin 是一款开源的统一身份认证系统，支持 QQ、微信、PuddingChat、微博、Google、Microsoft、GitHub 等十余种第三方平台的 OAuth 授权登录与账号绑定。
 
@@ -186,6 +186,7 @@ open_basedir=/www/wwwroot/demo.example.com/:/tmp/
 | 除首页外全部 404 | 未配置伪静态，按第四步添加 try_files 规则 |
 | 页面提示「前端资源尚未构建」 | `assets/app.js` 缺失。源码包已内置构建产物，检查解压是否完整；仅二次开发修改前端后才需要自行 `npm run build` |
 | 数据库连接失败 | 核对账号、密码与授权库；宝塔默认不允许 root 远程连接，主机请填 127.0.0.1 |
+| 部署在 CDN / 反向代理后，日志 IP 全是代理地址 | 进入「管理后台 → 系统设置 → IP 地址获取设置」，把「获取方式」改为「从请求头读取」，填写请求头（如 X-Forwarded-For、CF-Connecting-IP）与受信任代理 IP（支持 10.0.0.0/8 这类网段）。默认直连模式只取 REMOTE_ADDR，可防止客户端伪造 X-Forwarded-For 绕过验证码限流 |
 | 安装完成后首页白屏 | 确认 PHP 版本为 7.4，并检查 `storage/database.php` 是否成功写入 |
 
 ## 前端构建（仅二次开发需要）

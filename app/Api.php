@@ -498,9 +498,8 @@ final class Api
 
     private static function baseUrl(): string
     {
-        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-        $host = $_SERVER['HTTP_HOST'] ?? 'login.idcbdy.top';
-        return ($https ? 'https://' : 'http://') . $host;
+        // 优先使用后台配置的站点地址，未配置时按当前请求的 Host 推导，避免写死某一域名
+        return pl_self_base();
     }
 
     private static function overview(): void
