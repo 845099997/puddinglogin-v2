@@ -169,6 +169,20 @@ final class Api
         if ((int) pl_conf('reg_open', '1') !== 1) {
             pl_err('当前未开放注册');
         }
+        // 快捷登录转注册：先校验一次性票据，避免账号信息填完后才发现凭据失效
+        $oauthTicket = pl_in('oauth_ticket');
+        $oauth = null;
+        if ($oauthTicket !== '') {
+            $oauth = pl_oauth_ticket_verify($oauthTicket);
+            if ($oauth === null) {
+                pl_err('快捷登录凭据已过期，请返回登录页重新授权');
+            }
+            $chk = pl_pdo()->prepare('SELECT uid FROM pl_accounts WHERE type = ? AND social_uid = ? AND uid > 0 LIMIT 1');
+            $chk->execute([(string) $oauth['type'], (string) $oauth['social_uid']]);
+            if ($chk->fetch()) {
+                pl_err('该第三方账号已绑定其他用户，请直接登录');
+            }
+        }
         $username = pl_in('username');
         $pass = pl_in('password');
         $pass2 = pl_in('password2');
@@ -223,6 +237,26 @@ final class Api
             pl_client_ip(),
         ]);
         $uid = (int) pl_pdo()->lastInsertId();
+        // 快捷登录转注册：把第三方账号绑定到刚创建的用户
+        if (is_array($oauth)) {
+            $oT = (string) $oauth['type'];
+            $oS = (string) $oauth['social_uid'];
+            $pdo = pl_pdo();
+            $acc = $pdo->prepare('SELECT id FROM pl_accounts WHERE type = ? AND social_uid = ? LIMIT 1');
+            $acc->execute([$oT, $oS]);
+            $accRow = $acc->fetch();
+            if ($accRow) {
+                $pdo->prepare('UPDATE pl_accounts SET uid = ?, nickname = ?, faceimg = ?, gender = ?, lasttime = ?, lastip = ? WHERE id = ?')
+                    ->execute([$uid, (string) ($oauth['nickname'] ?? ''), (string) ($oauth['faceimg'] ?? ''), (int) ($oauth['gender'] ?? 0), pl_now(), pl_client_ip(), (int) $accRow['id']]);
+            } else {
+                $pdo->prepare('INSERT INTO pl_accounts (uid, appid, type, social_uid, nickname, faceimg, addtime, gender, lasttime, lastip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                    ->execute([$uid, (string) ($oauth['appid'] ?? ''), $oT, $oS, (string) ($oauth['nickname'] ?? ''), (string) ($oauth['faceimg'] ?? ''), pl_now(), (int) ($oauth['gender'] ?? 0), pl_now(), pl_client_ip()]);
+            }
+            if (in_array($oT, ['qq', 'wx', 'alipay'], true)) {
+                $pdo->prepare('UPDATE pl_user SET ' . $oT . '_uid = ? WHERE uid = ?')->execute([$oS, $uid]);
+            }
+            pl_record_log($uid, 'oauth_' . $oT, ['social_uid' => $oS, 'way' => $oT, 'domain' => (string) parse_url(self::baseUrl(), PHP_URL_HOST)]);
+        }
         pl_login_user($uid);
         pl_record_log($uid, 'register');
         $user = pl_current_user();
@@ -453,21 +487,27 @@ final class Api
                 ->execute([$socialUid, $bindUid]);
         }
         if ($uid === 0) {
-            $username = $type . '_' . substr(md5($socialUid . PL_SYS_KEY), 0, 8);
-            $ins = $pdo->prepare('INSERT INTO pl_user (username, pwd, nickname, avatar, addtime, lasttime, lastip, gid, status) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)');
-            $ins->execute([
-                $username,
-                pl_hash_pwd(bin2hex(random_bytes(8))),
-                (string) ($profile['nickname'] ?? $username),
-                (string) ($profile['faceimg'] ?? ''),
-                pl_now(),
-                pl_now(),
-                pl_client_ip(),
-            ]);
-            $uid = (int) $pdo->lastInsertId();
-            if ($legacyField !== '') {
-                $pdo->prepare('UPDATE pl_user SET ' . $legacyField . ' = ? WHERE uid = ?')->execute([$socialUid, $uid]);
+            // 快捷登录未绑定任何账号：不再自动建号，改为跳转注册页由用户自行设置账号信息
+            if ((int) pl_conf('reg_open', '1') !== 1) {
+                self::callbackFail('该快捷登录账号尚未绑定本站用户，且站点当前未开放注册，请联系管理员');
             }
+            $nick = (string) ($profile['nickname'] ?? '');
+            $ticket = pl_oauth_ticket([
+                'type' => $type,
+                'social_uid' => $socialUid,
+                'nickname' => $nick,
+                'faceimg' => (string) ($profile['faceimg'] ?? ''),
+                'gender' => (int) ($profile['gender'] ?? 0),
+                'appid' => (string) pl_conf('default_appid', ''),
+            ]);
+            $qs = http_build_query([
+                'oauth' => '1',
+                'type' => $type,
+                'ticket' => $ticket,
+                'nickname' => $nick,
+            ]);
+            header('Location: ' . self::baseUrl() . '/#/register?' . $qs);
+            exit;
         } else {
             $pdo->prepare('UPDATE pl_user SET nickname = COALESCE(NULLIF(nickname, \'\'), ?), avatar = COALESCE(NULLIF(avatar, \'\'), ?), lasttime = ?, lastip = ? WHERE uid = ?')
                 ->execute([(string) ($profile['nickname'] ?? ''), (string) ($profile['faceimg'] ?? ''), pl_now(), pl_client_ip(), $uid]);

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon, { type IconName } from '../components/Icon';
 import ThemeToggle from '../components/ThemeToggle';
-import { get, post, type Site, type User, type LoginType } from '../lib/api';
+import { get, post, socialLabel, type Site, type User, type LoginType } from '../lib/api';
 import { Spinner, cx, useToast } from '../lib/ui';
 
 type Mode = 'login' | 'register' | 'findpwd';
@@ -116,6 +116,10 @@ export default function AuthPage({
   const [countdown, setCountdown] = useState(0);
   const [demoCode, setDemoCode] = useState('');
   const timer = useRef<number | null>(null);
+  // 快捷登录未绑定账号时，后端会带票据跳到注册页，注册成功后自动完成绑定
+  const [oauthTicket, setOauthTicket] = useState('');
+  const [oauthType, setOauthType] = useState('');
+  const [oauthNickname, setOauthNickname] = useState('');
 
   const [captchaOpen, setCaptchaOpen] = useState(false);
   const [captchaKey, setCaptchaKey] = useState('');
@@ -136,6 +140,20 @@ export default function AuthPage({
       setError(err);
       window.history.replaceState(null, '', window.location.pathname + '#/login');
     }
+  }, [query]);
+
+  useEffect(() => {
+    if (query.get('oauth') !== '1') return;
+    const ticket = query.get('ticket') || '';
+    const type = query.get('type') || '';
+    const nickname = query.get('nickname') || '';
+    if (!ticket || !type) {
+      setError('快捷登录凭据缺失，请返回登录页重新授权');
+      return;
+    }
+    setOauthTicket(ticket);
+    setOauthType(type);
+    setOauthNickname(nickname);
   }, [query]);
 
   useEffect(() => {
@@ -408,10 +426,13 @@ export default function AuthPage({
     };
     if (channel === 'email') body.email = target.trim();
     else body.phone = target.trim();
+    // 快捷登录转注册：带上票据，注册成功后由后端自动绑定该第三方账号
+    if (oauthTicket) body.oauth_ticket = oauthTicket;
     const res = await post<{ user: User }>('reg', body);
     setBusy(false);
     if (res.code === 0 && res.data?.user) {
-      toast.push('success', '注册成功，已自动登录');
+      setOauthTicket('');
+      toast.push('success', oauthTicket ? '注册成功，已绑定快捷登录并自动登录' : '注册成功，已自动登录');
       onSuccess(res.data.user);
     } else {
       setError(res.msg || '注册失败');
@@ -594,6 +615,15 @@ export default function AuthPage({
 
             {mode === 'register' ? (
               <form onSubmit={doRegister} className='space-y-3.5'>
+                {oauthTicket ? (
+                  <div className='flex items-start gap-2 rounded-2xl border border-pudding-300/25 bg-pudding-300/10 px-4 py-3 text-[13px] leading-relaxed text-pudding-200'>
+                    <Icon name='sparkle' size={15} className='mt-0.5 shrink-0' />
+                    <span>
+                      你正在使用 {socialLabel(oauthType)} 快捷登录{oauthNickname ? '（' + oauthNickname + '）' : ''}，该账号尚未绑定本站用户。
+                      完成下方注册后将自动绑定，下次可直接快捷登录。
+                    </span>
+                  </div>
+                ) : null}
                 <div>
                   <label className='label'>用户名</label>
                   <input

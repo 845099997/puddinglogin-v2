@@ -629,6 +629,44 @@ function pl_self_base(): string
     return ($https ? 'https://' : 'http://') . $host;
 }
 
+/**
+ * 生成快捷登录待注册凭据：未绑定账号时不再自动建号，改为把第三方资料签名为一次性票据，
+ * 由用户在前台注册页自行设置账号信息后完成绑定。
+ */
+function pl_oauth_ticket(array $payload, int $ttl = 600): string
+{
+    $payload['exp'] = time() + $ttl;
+    $payload['nonce'] = bin2hex(random_bytes(8));
+    $json = (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $body = rtrim(strtr(base64_encode($json), '+/', '-_'), '=');
+    return $body . '.' . hash_hmac('sha256', $body, PL_SYS_KEY);
+}
+
+function pl_oauth_ticket_verify(string $ticket): ?array
+{
+    $parts = explode('.', $ticket);
+    if (count($parts) !== 2) {
+        return null;
+    }
+    [$body, $mac] = $parts;
+    if ($body === '' || !hash_equals(hash_hmac('sha256', $body, PL_SYS_KEY), $mac)) {
+        return null;
+    }
+    $pad = (4 - strlen($body) % 4) % 4;
+    $json = base64_decode(strtr($body . str_repeat('=', $pad), '-_', '+/'), true);
+    if ($json === false) {
+        return null;
+    }
+    $data = json_decode($json, true);
+    if (!is_array($data) || (int) ($data['exp'] ?? 0) < time()) {
+        return null;
+    }
+    if ((string) ($data['type'] ?? '') === '' || (string) ($data['social_uid'] ?? '') === '') {
+        return null;
+    }
+    return $data;
+}
+
 function pl_mail_send(array $opt): array
 {
     $host = trim((string) ($opt['host'] ?? ''));
