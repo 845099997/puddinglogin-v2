@@ -146,6 +146,15 @@ export default function AdminPage({
   const [editGid, setEditGid] = useState(0);
   const [editMoney, setEditMoney] = useState('');
   const [editUserBusy, setEditUserBusy] = useState(false);
+  const [addUser, setAddUser] = useState(false);
+  const [addUsername, setAddUsername] = useState("");
+  const [addPassword, setAddPassword] = useState("");
+  const [addNick, setAddNick] = useState("");
+  const [addEmail, setAddEmail] = useState("");
+  const [addPhone, setAddPhone] = useState("");
+  const [addGid, setAddGid] = useState(0);
+  const [addIsAdmin, setAddIsAdmin] = useState(0);
+  const [addUserBusy, setAddUserBusy] = useState(false);
 
   const loadStats = useCallback(() => {
     setStatsLoading(true);
@@ -302,7 +311,30 @@ export default function AdminPage({
     } else { toast.push('error', res.msg || '保存失败'); }
   };
 
-  const logout = async () => {
+  const submitAddUser = async () => {
+    if (addUserBusy) return;
+    if (addUsername === "" || addPassword === "") {
+      toast.push("error", "用户名和密码不能为空");
+      return;
+    }
+    setAddUserBusy(true);
+    const body: Record<string, string | number> = { username: addUsername, password: addPassword };
+    if (addNick !== "") body.nickname = addNick;
+    if (addEmail !== "") body.email = addEmail;
+    if (addPhone !== "") body.phone = addPhone;
+    body.gid = addGid;
+    body.is_admin = addIsAdmin;
+    const res = await post("admin.user.add", body);
+    setAddUserBusy(false);
+    if (res.code === 0) {
+      toast.push("success", res.msg || "用户添加成功");
+      setAddUser(false);
+      loadUsers(userPage, userKw);
+      loadGroups();
+    } else { toast.push("error", res.msg || "添加失败"); }
+  };
+
+    const logout = async () => {
     const res = await post('logout');
     if (res.code === 0) {
       onUser(null);
@@ -515,6 +547,7 @@ export default function AdminPage({
                   >
                     搜索
                   </button>
+                  <button type='button' onClick={() => { setAddUser(true); setAddUsername(""); setAddPassword(""); setAddNick(""); setAddEmail(""); setAddPhone(""); setAddGid(0); setAddIsAdmin(0); }} disabled={site.demo_on} className='rounded-xl border border-pudding-300/30 bg-pudding-300/8 px-3 py-2 text-xs text-pudding-200/85 transition hover:bg-pudding-300/15 hover:text-pudding-100 disabled:opacity-40 disabled:cursor-not-allowed'>添加用户</button>
                 </div>
               </div>
               {usersLoading ? (

@@ -58,7 +58,7 @@ final class AdminApi
     public static function dispatch(string $act): void
     {
         $demoReadonly = [
-            "admin.config.save", "admin.user.save", "admin.user.pwd", "admin.self.pwd",
+            "admin.config.save", "admin.user.save", "admin.user.add", "admin.user.pwd", "admin.self.pwd",
             "admin.app.toggle", "admin.app.delete", "admin.group.save", "admin.group.delete",
             "admin.group.buy", "admin.order.close", "admin.account.delete",
         ];
@@ -77,6 +77,9 @@ final class AdminApi
                 break;
             case 'admin.users':
                 self::users();
+                break;
+            case 'admin.user.add':
+                self::userAdd();
                 break;
             case 'admin.user.save':
                 self::userSave();
@@ -352,6 +355,54 @@ final class AdminApi
         pl_ok([], $detail . ' 成功');
     }
 
+    /**
+     * 管理员直接添加用户
+     */
+    private static function userAdd(): void
+    {
+        self::method("POST");
+        $admin = pl_require_admin();
+        pl_check_csrf();
+        $un = trim((string) pl_in("username", ""));
+        if ($un === "" || mb_strlen($un) < 3 || mb_strlen($un) > 32 || !preg_match("/^[a-zA-Z0-9_\\-]+$/", $un)) {
+            pl_err("用户名须为 3-32 位英文字母、数字、下划线或短横线");
+        }
+        $pdo = pl_pdo();
+        $st = $pdo->prepare("SELECT COUNT(*) FROM pl_user WHERE username = ?");
+        $st->execute([$un]);
+        if ((int) $st->fetchColumn() > 0) {
+            pl_err("用户名已存在");
+        }
+        $pwd = trim((string) pl_in("password", ""));
+        if (mb_strlen($pwd) < (int) pl_conf("pwd_min", "6")) {
+            pl_err("密码至少 " . pl_conf("pwd_min", "6") . " 位");
+        }
+        $max = (int) pl_conf("pwd_max", "64");
+        if (mb_strlen($pwd) > $max) {
+            pl_err("密码不能超过 " . $max . " 位");
+        }
+        $nickname = mb_substr(trim((string) pl_in("nickname", "")), 0, 64);
+        $email = trim((string) pl_in("email", ""));
+        if ($email !== "" && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            pl_err("邮箱格式不正确");
+        }
+        $phone = trim((string) pl_in("phone", ""));
+        if ($phone !== "" && !preg_match("/^1[3-9]\\d{9}$/", $phone)) {
+            pl_err("手机号格式不正确");
+        }
+        $gid = (int) pl_in("gid", "0");
+        $isAdmin = (int) pl_in("is_admin") === 1 ? 1 : 0;
+        $status = (int) pl_in("status", "1") === 1 ? 1 : 1;
+        $now = date("Y-m-d H:i:s");
+        $pwdHash = password_hash($pwd, PASSWORD_BCRYPT);
+        $stmt = $pdo->prepare(
+            "INSERT INTO pl_user (username, pwd, nickname, email, phone, gid, is_admin, status, addtime, lasttime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+        $stmt->execute([$un, $pwdHash, $nickname, $email, $phone, $gid, $isAdmin, $status, $now, $now]);
+        $uid = (int) $pdo->lastInsertId();
+        pl_admin_log((int) $admin["uid"], "user.add", "添加用户 " . $un, (string) $un);
+        pl_ok(["uid" => $uid, "username" => $un], "用户添加成功");
+    }
     private static function userPwd(): void
     {
         self::method('POST');

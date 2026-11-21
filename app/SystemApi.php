@@ -108,7 +108,7 @@ final class SystemApi
         'captcha' => [
             'label' => '图形验证码配置',
             'icon' => 'shield',
-            'desc' => 'PuddingCaptcha 人机验证，保护登录注册及短信/邮箱发送安全',
+            'desc' => 'PuddingCaptcha 人机验证，保护登录注册及短信/邮箱发送安全。前往 <a href=https://captcha.idcbdy.com/ target=_blank>captcha.idcbdy.com</a> 申请 AccessKey 和 Secret',
             'fields' => [
                 'captcha_enable' => ['label' => '启用图形验证码', 'kind' => 'bool', 'desc' => '开启后登录/注册/发送验证码前需完成图形人机验证', 'conf' => 'captcha_enable'],
                 'captcha_api_url' => ['label' => '验证码网关地址', 'kind' => 'text', 'placeholder' => 'https://captcha.idcbdy.com', 'mono' => true, 'conf' => 'captcha_api_url'],
