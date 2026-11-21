@@ -1,5 +1,9 @@
 <?php
 declare(strict_types=1);
+/**
+ * PuddingLogin v2.1.6 - MIT License
+ * 开源统一身份认证系统 · https://gitee.com/budingyun6/puddinglogin-v2
+ */
 // 安装检测：未完成安装时跳转安装向导
 if (!is_file(__DIR__ . '/storage/installed.lock')) {
     header('Location: /install/index.php');

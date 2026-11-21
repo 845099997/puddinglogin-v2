@@ -1,5 +1,9 @@
 <?php
 declare(strict_types=1);
+/**
+ * PuddingLogin v2.1.6 - MIT License
+ * 开源统一身份认证系统 · https://gitee.com/budingyun6/puddinglogin-v2
+ */
 
 require __DIR__ . '/app/core.php';
 require __DIR__ . '/app/Connect.php';
