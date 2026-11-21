@@ -84,8 +84,12 @@ function pl_session(): void
     // 原先 PHP 默认 gc_maxlifetime 仅 1440 秒，页面停留超过 24 分钟后会话被回收，
     // 而 Cookie 仍保留 7 天，导致提交时 CSRF 令牌与已销毁的会话不匹配
     $lifetime = 86400;
-    ini_set('session.gc_maxlifetime', (string) $lifetime);
-    ini_set('session.cookie_lifetime', '0');
+    if (function_exists('ini_set')) {
+        ini_set('session.gc_maxlifetime', (string) $lifetime);
+    }
+    if (function_exists('ini_set')) {
+        ini_set('session.cookie_lifetime', '0');
+    }
     session_name('PLSESSION');
     session_set_cookie_params([
         'lifetime' => $lifetime,
