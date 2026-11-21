@@ -1,4 +1,6 @@
-# PuddingLogin v2
+# PuddingLogin v2 
+PuddingLogin 布丁云（广东）网络科技有限公司 ©版权所有
+QQ：845099997，邮箱：idcbdy@vip.qq.com
 
 > 自研统一身份认证平台 · 开源版 v2.1.4
 
