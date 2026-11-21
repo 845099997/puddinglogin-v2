@@ -492,6 +492,8 @@ function pl_site_public(): array
         'reg_channel' => (string) pl_conf('reg_channel', 'both'),
         'captcha_open_login' => (int) pl_conf('captcha_open_login', '0') === 1,
         'test_open' => (int) pl_conf('test_open', '0') === 1,
+        'demo_on' => pl_demo_on(),
+        'demo_password_set' => (string) pl_conf('demo_password', '') !== '',
         'quick' => [
             'puddingchat' => (int) pl_conf('quick_puddingchat', '0') === 1,
             'qq' => (int) pl_conf('quick_qq', '0') === 1,
@@ -589,6 +591,29 @@ function pl_require_admin(): array
     return $user;
 }
 
+/**
+ * 演示模式：开启后部分后台配置与用户管理变为只读，关闭需校验演示密码。
+ * 密码以 bcrypt 哈希存放于 pl_config.demo_password，不保存明文。
+ */
+function pl_demo_on(): bool
+{
+    return (int) pl_conf('test_open', '0') === 1;
+}
+
+function pl_demo_guard(string $scope): void
+{
+    if (pl_demo_on()) {
+        pl_err('演示模式已开启，「' . $scope . '」当前为只读，请先在系统设置中关闭演示模式', -1, 200, ['errcode' => 423]);
+    }
+}
+
+/**
+ * 演示密码：以 bcrypt 哈希存于 pl_config.demo_password，不保存明文。
+ */
+function pl_demo_password_hash(): string
+{
+    return (string) pl_conf("demo_password", "");
+}
 function pl_conf_set(string $key, string $value): void
 {
     $stmt = pl_pdo()->prepare('INSERT INTO pl_config (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)');

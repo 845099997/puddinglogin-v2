@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import Icon, { type IconName } from '../components/Icon';
-import { get, post, upload, type SettingField } from '../lib/api';
+import { get, post, upload, type SettingField, type Site } from '../lib/api';
 import { cx, Spinner, useToast } from '../lib/ui';
 
 type DetailData = {
@@ -11,7 +11,7 @@ type DetailData = {
 };
 
 const FIELD_CLS =
-  'w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-cream outline-none transition placeholder:text-white/25 focus:border-pudding-300/60 focus:bg-white/8';
+  'w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-cream outline-none transition placeholder:text-white/25 focus:border-pudding-300/60 focus:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50';
 
 const CLEANUP_TARGETS: Array<{ key: string; label: string; desc: string }> = [
   { key: 'flow', label: '过期授权流程', desc: '清理 pl_connect_flow 中已过期的授权状态记录' },
@@ -33,7 +33,7 @@ const GROUPS: Array<{ key: string; label: string; icon: IconName }> = [
   { key: 'update', label: '检测更新', icon: 'refresh' },
 ];
 
-export default function SystemSettingsPage() {
+export default function SystemSettingsPage({ site }: { site: Site }) {
   const toast = useToast();
   const [active, setActive] = useState('site');
   const [data, setData] = useState<DetailData | null>(null);
@@ -95,6 +95,7 @@ export default function SystemSettingsPage() {
       <section className='rounded-3xl border border-white/10 bg-mesh px-5 py-4 shadow-card'>
         <h2 className='text-base font-semibold text-cream'>系统设置</h2>
         <p className='mt-1 text-[12px] text-white/40'>每个分组独立配置、独立保存，修改后立即生效</p>
+        {site.demo_on ? <p className='mt-1 text-[12px] text-amber-300/85'>演示模式已开启：仅「演示模式」与「演示密码」可修改，其余设置均为只读</p> : null}
       </section>
 
       <div className='flex flex-col gap-4 lg:flex-row'>
@@ -133,11 +134,11 @@ export default function SystemSettingsPage() {
               </div>
 
               {data.group === 'cleanup' ? (
-                <CleanupPanel />
+                <CleanupPanel demoOn={site.demo_on} />
               ) : data.group === 'update' ? (
                 <UpdatePanel />
               ) : data.group === 'logo' ? (
-                <LogoPanel form={form} setForm={setForm} fields={data.fields} />
+                <LogoPanel form={form} setForm={setForm} fields={data.fields} demoOn={site.demo_on} />
               ) : (
                 <div className='space-y-3.5'>
                   {(() => {
@@ -164,6 +165,7 @@ export default function SystemSettingsPage() {
                           def={data.fields[k]}
                           value={form[k] ?? ''}
                           onChange={(v) => setForm((prev) => ({ ...prev, [k]: v }))}
+                          disabled={site.demo_on && k !== 'test_open' && k !== 'demo_password'}
                         />
                       ));
                       if (b.title === '') return rows;
@@ -185,7 +187,7 @@ export default function SystemSettingsPage() {
                 <button
                   type='button'
                   onClick={save}
-                  disabled={saving}
+                  disabled={saving || (site.demo_on && data.group !== 'login')}
                   className='inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-pudding-gradient px-5 py-3 text-sm font-semibold text-on-pudding transition hover:brightness-105 active:scale-[0.99] disabled:opacity-60'
                 >
                   {saving ? <Spinner size={14} /> : <Icon name='check' size={15} />}
@@ -204,19 +206,22 @@ function FieldRow({
   def,
   value,
   onChange,
+  disabled = false,
 }: {
   def: SettingField;
   value: string;
   onChange: (v: string) => void;
+  disabled?: boolean;
 }) {
   if (def.kind === 'bool') {
     const on = value === '1';
     return (
       <button
         type='button'
+        disabled={disabled}
         onClick={() => onChange(on ? '0' : '1')}
         className={cx(
-          'flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition',
+          'flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50',
           on ? 'border-mint/35 bg-mint/8' : 'border-white/10 bg-white/[0.03] hover:bg-white/8'
         )}
       >
@@ -252,6 +257,7 @@ function FieldRow({
           onChange={(e) => onChange(e.target.value)}
           placeholder={def.placeholder}
           rows={3}
+          disabled={disabled}
           className={cx(FIELD_CLS, 'resize-y leading-relaxed')}
         />
         {def.desc ? <span className='mt-1 block text-[11px] text-white/30'>{def.desc}</span> : null}
@@ -264,7 +270,7 @@ function FieldRow({
     return (
       <label className='block'>
         <span className='mb-1.5 block text-[12.5px] text-white/45'>{def.label}</span>
-        <select value={value} onChange={(e) => onChange(e.target.value)} className={FIELD_CLS}>
+        <select value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} className={FIELD_CLS}>
           {Object.keys(opts).map((k) => (
             <option key={k} value={k} className='bg-ink-850 text-cream'>
               {opts[k]}
@@ -291,6 +297,7 @@ function FieldRow({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={def.placeholder}
+        disabled={disabled}
         className={cx(FIELD_CLS, def.mono && 'font-mono text-xs')}
       />
       {def.desc ? <span className='mt-1 block text-[11px] text-white/30'>{def.desc}</span> : null}
@@ -304,11 +311,13 @@ function FieldRow({
 function LogoPanel({
   form,
   setForm,
+  demoOn,
   fields,
 }: {
   form: Record<string, string>;
   setForm: Dispatch<SetStateAction<Record<string, string>>>;
   fields: Record<string, SettingField>;
+  demoOn: boolean;
 }) {
   const toast = useToast();
   const [busy, setBusy] = useState('');
@@ -352,7 +361,7 @@ function LogoPanel({
                 <button
                   type='button'
                   onClick={() => (isLogo ? logoRef : iconRef).current?.click()}
-                  disabled={busy !== ''}
+                  disabled={busy !== '' || demoOn}
                   className='inline-flex items-center gap-1.5 rounded-xl border border-white/12 bg-white/5 px-3 py-2 text-[11.5px] text-white/70 transition hover:bg-white/10 hover:text-white disabled:opacity-60'
                 >
                   {busy === kind ? <Spinner size={12} /> : <Icon name='plus' size={12} />}
@@ -399,7 +408,7 @@ function LogoPanel({
   );
 }
 
-function CleanupPanel() {
+function CleanupPanel({ demoOn }: { demoOn: boolean }) {
   const toast = useToast();
   const [days, setDays] = useState('90');
   const [busy, setBusy] = useState('');
@@ -438,7 +447,7 @@ function CleanupPanel() {
           <button
             type='button'
             onClick={() => run(t.key)}
-            disabled={busy !== ''}
+            disabled={busy !== '' || demoOn}
             className='inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-berry-400/35 bg-berry-400/10 px-3 py-2 text-[11.5px] text-berry-200 transition hover:bg-berry-400/20 disabled:opacity-60'
           >
             {busy === t.key ? <Spinner size={12} /> : <Icon name='trash' size={12} />}

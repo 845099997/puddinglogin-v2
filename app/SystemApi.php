@@ -34,6 +34,7 @@ final class SystemApi
                 'reg_channel' => ['label' => '注册通道', 'kind' => 'select', 'options' => ['both' => '邮箱与手机均可', 'email' => '仅邮箱', 'phone' => '仅手机号'], 'desc' => '控制注册页可用的验证通道，需同时配置对应的邮件/短信服务', 'conf' => 'reg_channel'],
                 'captcha_open_login' => ['label' => '登录验证码', 'kind' => 'bool', 'desc' => '开启后登录需要图形验证码', 'conf' => 'captcha_open_login'],
                 'test_open' => ['label' => '演示模式', 'kind' => 'bool', 'desc' => '开启后展示演示验证码，便于调试', 'conf' => 'test_open'],
+                'demo_password' => ['label' => '演示密码', 'kind' => 'secret', 'desc' => '至少 6 位；开启演示模式时设置，关闭演示模式时必须输入该密码', 'placeholder' => '留空表示不修改', 'conf' => 'demo_password'],
                 'login_notice' => ['label' => '登录页公告', 'kind' => 'textarea', 'placeholder' => '展示在登录页顶部的提示文字'],
                 'reg_notice' => ['label' => '注册页公告', 'kind' => 'textarea', 'placeholder' => '展示在注册页顶部的提示文字'],
                 'pwd_min' => ['label' => '密码最小长度', 'kind' => 'number', 'placeholder' => '6'],
@@ -183,6 +184,9 @@ final class SystemApi
 
     public static function dispatch(string $act): void
     {
+        if (pl_demo_on() && in_array($act, ["system.logo.upload", "system.cleanup"], true)) {
+            pl_demo_guard("系统设置");
+        }
         switch ($act) {
             case 'system.list':
                 self::listGroups();
@@ -286,6 +290,12 @@ final class SystemApi
             pl_err('未知的设置分组');
         }
         $changed = [];
+        if (pl_demo_on()) {
+            self::demoOffOnly($group);
+        }
+        if ($group === "login") {
+            self::demoSwitchCheck();
+        }
         foreach (self::SCHEMA[$group]['fields'] as $key => $def) {
             $raw = pl_in($key, '__PL_UNSET__');
             if ($raw === '__PL_UNSET__') {
@@ -307,6 +317,12 @@ final class SystemApi
                 $limit = $def['kind'] === 'textarea' ? 2000 : 255;
                 $val = mb_substr($raw, 0, $limit);
             }
+            if (($def["conf"] ?? "") === "demo_password") {
+                if (mb_strlen($val) < 6) {
+                    pl_err("演示密码至少 6 位");
+                }
+                $val = password_hash($val, PASSWORD_BCRYPT);
+            }
             $confKey = $def['conf'] ?? ($group . '_' . $key);
             $old = (string) pl_conf($confKey, '');
             if ($old !== $val) {
@@ -320,6 +336,69 @@ final class SystemApi
         pl_ok(['changed' => $changed], $changed === [] ? '没有需要保存的变更' : '设置已保存并立即生效');
     }
 
+    /**
+     * 演示模式下仅允许修改演示开关与演示密码，其余字段按只读拒绝。
+     */
+    private static function demoOffOnly(string $group): void
+    {
+        $allow = ['test_open', 'demo_password'];
+        foreach (self::SCHEMA[$group]['fields'] as $fk => $fd) {
+            if (in_array($fk, $allow, true)) {
+                continue;
+            }
+            $raw = pl_in($fk, '__PL_UNSET__');
+            if ($raw === '__PL_UNSET__') {
+                continue;
+            }
+            if ($fd['kind'] === 'bool') {
+                $val = ($raw === '1' || $raw === 'true') ? '1' : '0';
+            } elseif ($fd['kind'] === 'secret') {
+                if ($raw === '' || strpos($raw, '*') !== false) {
+                    continue;
+                }
+                $val = $raw;
+            } elseif ($fd['kind'] === 'number') {
+                if ($raw !== '' && !is_numeric($raw)) {
+                    continue;
+                }
+                $val = $raw === '' ? '' : (string) (int) $raw;
+            } else {
+                $limit = $fd['kind'] === 'textarea' ? 2000 : 255;
+                $val = mb_substr($raw, 0, $limit);
+            }
+            $confKey = $fd['conf'] ?? ($group . '_' . $fk);
+            if ((string) pl_conf($confKey, '') !== $val) {
+                pl_demo_guard(self::SCHEMA[$group]['label']);
+            }
+        }
+    }
+    /**
+     * 演示开关校验：开启前须设置不少于 6 位演示密码，关闭时须输入正确演示密码。
+     */
+    private static function demoSwitchCheck(): void
+    {
+        $raw = pl_in("test_open", "__PL_UNSET__");
+        if ($raw === "__PL_UNSET__") {
+            return;
+        }
+        $wantOn = ($raw === "1" || $raw === "true");
+        if ($wantOn) {
+            if (pl_demo_password_hash() === "" && mb_strlen(pl_in("demo_password")) < 6) {
+                pl_err("开启演示模式前请先设置不少于 6 位的演示密码");
+            }
+            return;
+        }
+        if (!pl_demo_on()) {
+            return;
+        }
+        $hash = pl_demo_password_hash();
+        if ($hash === "") {
+            return;
+        }
+        if (!password_verify(pl_in("demo_password"), $hash)) {
+            pl_err("演示密码不正确，无法关闭演示模式");
+        }
+    }
     private static function logoUpload(): void
     {
         self::method('POST');
@@ -428,3 +507,4 @@ final class SystemApi
         ]);
     }
 }
+

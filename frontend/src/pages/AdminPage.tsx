@@ -479,7 +479,7 @@ export default function AdminPage({
           ) : null}
 
           {tab === 'platform' ? <PlatformPage site={site} /> : null}
-          {tab === 'system' ? <SystemSettingsPage /> : null}
+          {tab === 'system' ? <SystemSettingsPage site={site} /> : null}
           {tab === 'users' ? (
             <section className='rounded-3xl border border-white/10 bg-ink-850/80 shadow-soft'>
               <div className='flex flex-col gap-4 border-b border-white/8 px-6 py-5 sm:flex-row sm:items-center sm:justify-between'>
@@ -567,29 +567,33 @@ export default function AdminPage({
                         <button
                           type='button'
                           onClick={() => openEditUser(u)}
-                          className='rounded-xl border border-white/12 bg-white/5 px-3 py-1.5 text-[11px] text-white/65 transition hover:bg-white/10 hover:text-white'
+                          disabled={site.demo_on}
+                          className='rounded-xl border border-white/12 bg-white/5 px-3 py-1.5 text-[11px] text-white/65 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40'
                         >
                           编辑
                         </button>
                         <button
                           type='button'
                           onClick={() => setPwdTarget(u)}
-                          className='rounded-xl border border-white/12 bg-white/5 px-3 py-1.5 text-[11px] text-white/65 transition hover:bg-white/10 hover:text-white'
+                          disabled={site.demo_on}
+                          className='rounded-xl border border-white/12 bg-white/5 px-3 py-1.5 text-[11px] text-white/65 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40'
                         >
                           重置密码
                         </button>
                         <button
                           type='button'
                           onClick={() => toggleUser(u, 'is_admin')}
-                          className='rounded-xl border border-white/12 bg-white/5 px-3 py-1.5 text-[11px] text-white/65 transition hover:bg-white/10 hover:text-white'
+                          disabled={site.demo_on}
+                          className='rounded-xl border border-white/12 bg-white/5 px-3 py-1.5 text-[11px] text-white/65 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40'
                         >
                           {u.is_admin === 1 ? '取消管理员' : '设为管理员'}
                         </button>
                         <button
                           type='button'
                           onClick={() => toggleUser(u, 'status')}
+                          disabled={site.demo_on}
                           className={cx(
-                            'rounded-xl border px-3 py-1.5 text-[11px] transition',
+                            'rounded-xl border px-3 py-1.5 text-[11px] transition disabled:cursor-not-allowed disabled:opacity-40',
                             u.status === 1
                               ? 'border-red-400/25 bg-red-500/10 text-red-300 hover:bg-red-500/20'
                               : 'border-mint/30 bg-mint/10 text-mint hover:bg-mint/20'
@@ -714,14 +718,16 @@ export default function AdminPage({
                         <button
                           type='button'
                           onClick={() => toggleApp(a)}
-                          className='rounded-xl border border-white/12 bg-white/5 px-3 py-1.5 text-[11px] text-white/65 transition hover:bg-white/10 hover:text-white'
+                          disabled={site.demo_on}
+                          className='rounded-xl border border-white/12 bg-white/5 px-3 py-1.5 text-[11px] text-white/65 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40'
                         >
                           {a.status === 1 ? '停用' : '启用'}
                         </button>
                         <button
                           type='button'
                           onClick={() => setDelApp(a)}
-                          className='rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-1.5 text-[11px] text-red-300 transition hover:bg-red-500/20'
+                          disabled={site.demo_on}
+                          className='rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-1.5 text-[11px] text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40'
                         >
                           删除
                         </button>

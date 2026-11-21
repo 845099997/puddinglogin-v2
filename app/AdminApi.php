@@ -57,6 +57,14 @@ final class AdminApi
 
     public static function dispatch(string $act): void
     {
+        $demoReadonly = [
+            "admin.config.save", "admin.user.save", "admin.user.pwd", "admin.self.pwd",
+            "admin.app.toggle", "admin.app.delete", "admin.group.save", "admin.group.delete",
+            "admin.group.buy", "admin.order.close", "admin.account.delete",
+        ];
+        if (in_array($act, $demoReadonly, true)) {
+            pl_demo_guard("管理后台");
+        }
         switch ($act) {
             case 'admin.config':
                 self::configGet();
@@ -157,6 +165,19 @@ final class AdminApi
         $admin = pl_require_admin();
         pl_check_csrf();
         $changed = [];
+        $demoRaw = pl_in("test_open", "__PL_UNSET__");
+        if ($demoRaw !== "__PL_UNSET__") {
+            $demoHash = pl_demo_password_hash();
+            if ($demoRaw === "1" || $demoRaw === "true") {
+                if ($demoHash === "") {
+                    pl_err("开启演示模式前请先在系统设置中设置演示密码");
+                }
+            } elseif (pl_demo_on() && $demoHash !== "") {
+                if (!password_verify(pl_in("demo_password"), $demoHash)) {
+                    pl_err("演示密码不正确，无法关闭演示模式");
+                }
+            }
+        }
         foreach (self::CONFIG_KEYS as $key => $kind) {
             $raw = pl_in($key, '__PL_UNSET__');
             if ($raw === '__PL_UNSET__') {

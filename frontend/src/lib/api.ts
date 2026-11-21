@@ -11,6 +11,8 @@ export type Site = {
   reg_channel: 'both' | 'email' | 'phone';
   captcha_open_login: boolean;
   test_open: boolean;
+  demo_on: boolean;
+  demo_password_set: boolean;
   quick: { puddingchat: boolean; qq: boolean; wx: boolean; alipay: boolean };
   default_appid: string;
   kfqq: string;
