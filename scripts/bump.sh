@@ -75,7 +75,10 @@ if $SKIP_PUSH; then
 else
   echo -e "[git] 推送至 Gitee …"
   GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git push origin master 2>&1
-  echo -e "${GREEN}✓ 已推送${NC}"
+  echo -e "  ${GREEN}✓ Gitee 已推送${NC}"
+  echo -e "[git] 推送至 GitHub …"
+  GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/true git push github master 2>&1 || echo -e "  ${YELLOW}⚠ GitHub 推送失败，请检查 Token 或网络${NC}"
+  echo -e "  ${GREEN}✓ GitHub 已推送${NC}"
 fi
 
 echo ''
