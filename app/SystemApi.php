@@ -570,21 +570,17 @@ final class SystemApi
             self::rrmdir($work);
             pl_err('无法写入更新包');
         }
-        // 下载函数：复用 curl 句柄获取文件
-        $download = function (string $u, string $desc) use ($fp, $ch): bool {
-            curl_setopt($ch, CURLOPT_URL, $u);
-            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; PuddingLogin/' . PL_VERSION . ')');
-            $ok = curl_exec($ch);
-            $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            return $ok && $code === 200;
-        };
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_FILE, $fp);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 180);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        $ok = $download($url, 'Gitee');
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; PuddingLogin/' . PL_VERSION . ')');
+        $ok = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
         curl_close($ch);
         fclose($fp);
         // 校验是否为有效 gzip 归档（魔术字节 \x1f\x8b），防止收到 HTML 反爬页
