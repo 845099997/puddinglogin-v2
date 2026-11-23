@@ -521,15 +521,6 @@ function UpdatePanel({ demoOn }: { demoOn: boolean }) {
 
   return (
     <div className='space-y-4'>
-      <button
-        type='button'
-        onClick={() => load(true)}
-        disabled={loading}
-        className='inline-flex items-center gap-2 rounded-2xl bg-pudding-gradient px-5 py-2.5 text-sm font-semibold text-on-pudding transition hover:brightness-105 disabled:opacity-60'
-      >
-        {loading ? <Spinner size={14} /> : <Icon name='refresh' size={14} />}
-        重新检测
-      </button>
 
       {info ? (
         <>
@@ -583,6 +574,15 @@ function UpdatePanel({ demoOn }: { demoOn: boolean }) {
               className='shrink-0 rounded-xl border border-white/12 bg-white/5 px-3 py-1.5 text-[11.5px] text-white/60 transition hover:bg-white/10 hover:text-white'
             >
               查看详情
+            </button>
+            <button
+              type='button'
+              onClick={() => load(true)}
+              disabled={loading}
+              className='inline-flex items-center gap-1.5 rounded-xl bg-pudding-gradient px-4 py-1.5 text-[12px] font-semibold text-on-pudding transition hover:brightness-105 disabled:opacity-60'
+            >
+              {loading ? <Spinner size={12} /> : <Icon name='refresh' size={12} />}
+              重新检测
             </button>
           </div>
           {info.remote_error ? (
