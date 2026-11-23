@@ -4,11 +4,7 @@
 #
 # 同步范围:
 #   1. app/core.php:31          const PL_VERSION = 'x.y.z'
-#   2. index.php:4              注释头 PuddingLogin vx.y.z
-#   3. api.php:4                注释头 PuddingLogin vx.y.z
-#   4. install/index.php:4      注释头 PuddingLogin vx.y.z
-#   5. .htaccess:1              注释 # PuddingLogin vx.y.z
-#   6. frontend/package.json:4  "version": "x.y.z"
+#   2. frontend/package.json:4  "version": "x.y.z"
 
 set -euo pipefail
 
@@ -48,24 +44,12 @@ echo -e "${YELLOW}当前版本: ${OLD_VER}  →  目标版本: ${NEW_VER}${NC}"
 echo ''
 
 # ---- 步骤 1: 同步 PHP 常量 ----
-echo -e "[1/6] app/core.php  PL_VERSION 常量 …"
+echo -e "[1/2] app/core.php  PL_VERSION 常量 …"
 sed -i "s/const PL_VERSION = '[0-9.]*';/const PL_VERSION = '${NEW_VER}';/" app/core.php
 grep -q "const PL_VERSION = '${NEW_VER}'" app/core.php && echo -e "  ${GREEN}✓ 已更新${NC}" || { echo -e "  ${RED}✗ 替换失败${NC}"; exit 1; }
 
-# ---- 步骤 2: 同步入口文件注释头 ----
-for f in index.php api.php install/index.php; do
-  echo -e "[ ] ${f}  注释头 …"
-  sed -i "s/PuddingLogin v[0-9.]* /PuddingLogin v${NEW_VER} /" "$f"
-  grep -q "PuddingLogin v${NEW_VER}" "$f" && echo -e "  ${GREEN}✓ 已更新${NC}" || { echo -e "  ${RED}✗ 替换失败${NC}"; exit 1; }
-done
-
-# ---- 步骤 3: 同步 .htaccess ----
-echo -e "[5/6] .htaccess  注释 …"
-sed -i "s/PuddingLogin v[0-9.]* /PuddingLogin v${NEW_VER} /" .htaccess
-grep -q "PuddingLogin v${NEW_VER}" .htaccess && echo -e "  ${GREEN}✓ 已更新${NC}" || { echo -e "  ${RED}✗ 替换失败${NC}"; exit 1; }
-
-# ---- 步骤 4: 同步 package.json ----
-echo -e "[6/6] frontend/package.json  …"
+# ---- 步骤 2: 同步 package.json ----
+echo -e "[2/2] frontend/package.json  …"
 sed -i "s/\"version\": \"[0-9.]*\"/\"version\": \"${NEW_VER}\"/" frontend/package.json
 grep -q "\"version\": \"${NEW_VER}\"" frontend/package.json && echo -e "  ${GREEN}✓ 已更新${NC}" || { echo -e "  ${RED}✗ 替换失败${NC}"; exit 1; }
 
