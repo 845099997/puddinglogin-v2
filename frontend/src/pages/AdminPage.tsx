@@ -547,7 +547,7 @@ export default function AdminPage({
                   >
                     搜索
                   </button>
-                  <button type='button' onClick={() => { setAddUser(true); setAddUsername(""); setAddPassword(""); setAddNick(""); setAddEmail(""); setAddPhone(""); setAddGid(0); setAddIsAdmin(0); }} disabled={site.demo_on} className='rounded-xl border border-pudding-300/30 bg-pudding-300/8 px-3 py-2 text-xs text-pudding-200/85 transition hover:bg-pudding-300/15 hover:text-pudding-100 disabled:opacity-40 disabled:cursor-not-allowed'>添加用户</button>
+                  <button type='button' onClick={() => { setAddUser(true); setAddUsername(""); setAddPassword(""); setAddNick(""); setAddEmail(""); setAddPhone(""); setAddGid(0); setAddIsAdmin(0); }} disabled={site.demo_on} className='rounded-xl border border-pudding-300/45 bg-pudding-300/12 px-3 py-2 text-xs font-medium text-cream transition hover:bg-pudding-300/20 disabled:cursor-not-allowed disabled:opacity-40'>添加用户</button>
                 </div>
               </div>
               {usersLoading ? (

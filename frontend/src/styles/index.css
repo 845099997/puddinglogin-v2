@@ -227,7 +227,9 @@ html[data-theme='day'] .text-red-300,
 html[data-theme='day'] .hover\:text-red-200:hover {
   color: #b42318;
 }
-html[data-theme='day'] .text-pudding-200 {
+html[data-theme='day'] .text-pudding-200,
+html[data-theme='day'] .text-pudding-200\/85,
+html[data-theme='day'] .hover\:text-pudding-100:hover {
   color: #b45309;
 }
 html[data-theme='day'] .text-berry-200 {

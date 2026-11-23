@@ -131,7 +131,7 @@ export default function SystemSettingsPage({ site }: { site: Site }) {
               <div>
                 <h3 className='text-[15px] font-semibold text-cream'>{data.meta.label}</h3>
                 <p className='mt-1 text-[12px] leading-relaxed text-white/40'>{data.meta.desc}</p>
-                {data.group === 'captcha' ? <a href='https://captcha.idcbdy.com/' target='_blank' rel='noreferrer' className='mt-2 inline-flex items-center gap-1.5 rounded-xl border border-pudding-300/30 bg-pudding-300/8 px-3 py-1.5 text-[11px] text-pudding-200/85 transition hover:bg-pudding-300/15 hover:text-pudding-100'>前往 PuddingCaptcha 控制台申请 AccessKey 和 Secret <Icon name='external' size={11} /></a> : null}
+                {data.group === 'captcha' ? <a href='https://captcha.idcbdy.com/' target='_blank' rel='noreferrer' className='mt-2 inline-flex items-center gap-1.5 rounded-xl border border-pudding-300/45 bg-pudding-300/12 px-3 py-1.5 text-[11.5px] font-medium text-cream transition hover:bg-pudding-300/20'>前往 PuddingCaptcha 控制台申请 AccessKey 和 Secret <Icon name='external' size={11} /></a> : null}
               </div>
 
               {data.group === 'cleanup' ? (
