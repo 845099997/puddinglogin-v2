@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import Icon, { type IconName } from '../components/Icon';
 import { get, post, upload, type SettingField, type Site } from '../lib/api';
-import { cx, Spinner, useToast } from '../lib/ui';
+import { cx, Modal, Spinner, useToast } from '../lib/ui';
 
 type DetailData = {
   group: string;
@@ -474,14 +474,19 @@ function UpdatePanel({ demoOn }: { demoOn: boolean }) {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [popup, setPopup] = useState(false);
   const [info, setInfo] = useState<UpdateInfo | null>(null);
 
-  const load = useCallback(() => {
+  const load = useCallback((notify = false) => {
     setLoading(true);
     get<UpdateInfo>('system.update.check').then((res) => {
       setLoading(false);
-      if (res.code === 0 && res.data) setInfo(res.data);
-      else toast.push('error', res.msg || '检测失败');
+      if (res.code === 0 && res.data) {
+        setInfo(res.data);
+        if (notify || res.data.has_update) setPopup(true);
+      } else {
+        toast.push('error', res.msg || '检测失败');
+      }
     });
   }, [toast]);
 
@@ -497,7 +502,7 @@ function UpdatePanel({ demoOn }: { demoOn: boolean }) {
     setRunning(false);
     if (res.code === 0) {
       toast.push('success', res.msg || '更新完成');
-      load();
+      load(true);
     } else {
       toast.push('error', res.msg || '更新失败');
     }
@@ -518,7 +523,7 @@ function UpdatePanel({ demoOn }: { demoOn: boolean }) {
     <div className='space-y-4'>
       <button
         type='button'
-        onClick={load}
+        onClick={() => load(true)}
         disabled={loading}
         className='inline-flex items-center gap-2 rounded-2xl bg-pudding-gradient px-5 py-2.5 text-sm font-semibold text-on-pudding transition hover:brightness-105 disabled:opacity-60'
       >
@@ -550,10 +555,36 @@ function UpdatePanel({ demoOn }: { demoOn: boolean }) {
             ))}
           </div>
 
-          <p className='text-[11px] text-white/30'>
-            最新版本 {info.latest} · 检测时间 {info.checked_at} ·{' '}
-            {info.has_update ? '发现新版本' : '已是最新版本'}
-          </p>
+          <div
+            className={cx(
+              'flex items-center gap-3 rounded-2xl border px-4 py-3.5',
+              info.has_update ? 'border-sky/35 bg-sky/10' : 'border-mint/35 bg-mint/10'
+            )}
+          >
+            <span
+              className={cx(
+                'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+                info.has_update ? 'bg-sky/20 text-sky' : 'bg-mint/20 text-mint'
+              )}
+            >
+              <Icon name={info.has_update ? 'refresh' : 'check'} size={18} />
+            </span>
+            <div className='min-w-0 flex-1'>
+              <p className={cx('text-[14px] font-semibold', info.has_update ? 'text-sky' : 'text-mint')}>
+                {info.has_update ? '发现新版本 v' + info.latest : '已是最新版本 v' + String(info.local.version)}
+              </p>
+              <p className='mt-0.5 text-[11.5px] text-white/40'>
+                {info.has_update ? '当前 v' + String(info.local.version) + ' · ' : ''}检测时间 {info.checked_at}
+              </p>
+            </div>
+            <button
+              type='button'
+              onClick={() => setPopup(true)}
+              className='shrink-0 rounded-xl border border-white/12 bg-white/5 px-3 py-1.5 text-[11.5px] text-white/60 transition hover:bg-white/10 hover:text-white'
+            >
+              查看详情
+            </button>
+          </div>
           {info.remote_error ? (
             <p className='text-[11px] text-amber-300/80'>{info.remote_error}</p>
           ) : null}
@@ -575,6 +606,71 @@ function UpdatePanel({ demoOn }: { demoOn: boolean }) {
             </div>
           ) : null}
         </>
+      ) : null}
+      {info ? (
+        <Modal
+          open={popup}
+          onClose={() => setPopup(false)}
+          title={info.has_update ? '发现新版本' : '版本检测结果'}
+          subtitle={'检测时间 ' + info.checked_at}
+          width='max-w-md'
+          footer={
+            <>
+              <button type='button' onClick={() => setPopup(false)} className='rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white/70 transition hover:bg-white/10 hover:text-white'>关闭</button>
+              {info.has_update ? (
+                <button
+                  type='button'
+                  onClick={() => { setPopup(false); runUpdate(); }}
+                  disabled={running || demoOn}
+                  className='inline-flex items-center justify-center gap-1.5 rounded-xl bg-pudding-gradient px-5 py-2.5 text-sm font-semibold leading-none text-on-pudding transition hover:brightness-105 disabled:opacity-60'
+                >
+                  <Icon name='refresh' size={14} /> 立即更新
+                </button>
+              ) : null}
+            </>
+          }
+        >
+          <div className='space-y-3'>
+            <div
+              className={cx(
+                'flex items-center gap-3 rounded-2xl border p-3.5',
+                info.has_update ? 'border-sky/35 bg-sky/10' : 'border-mint/35 bg-mint/10'
+              )}
+            >
+              <span
+                className={cx(
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                  info.has_update ? 'bg-sky/20 text-sky' : 'bg-mint/20 text-mint'
+                )}
+              >
+                <Icon name={info.has_update ? 'refresh' : 'check'} size={20} />
+              </span>
+              <div className='min-w-0'>
+                <p className={cx('text-[15px] font-semibold', info.has_update ? 'text-sky' : 'text-mint')}>
+                  {info.has_update ? '发现新版本 v' + info.latest : '已是最新版本'}
+                </p>
+                <p className='mt-0.5 text-[12px] text-white/45'>
+                  {'当前版本 v' + String(info.local.version) + ' · 最新版本 v' + info.latest}
+                </p>
+              </div>
+            </div>
+            {info.remote_error ? (
+              <p className='text-[11.5px] text-amber-300/85'>{info.remote_error}</p>
+            ) : null}
+            {info.has_update ? (
+              <p className='text-[11.5px] leading-relaxed text-white/40'>
+                将下载 Gitee master 归档并覆盖站点代码，storage 目录与 .git 保持不变。若涉及数据库结构变更，需按仓库说明手动执行 SQL。
+              </p>
+            ) : (
+              <p className='text-[11.5px] leading-relaxed text-white/40'>
+                当前已是最新版本，无需更新。如刚推送过代码，可稍等片刻后重新检测。
+              </p>
+            )}
+            {demoOn ? (
+              <p className='text-[11.5px] text-amber-300/85'>演示模式已开启，暂不可执行更新。</p>
+            ) : null}
+          </div>
+        </Modal>
       ) : null}
     </div>
   );
