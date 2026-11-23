@@ -75,6 +75,7 @@ final class PlatformApi
                 'sort' => $r['sort'],
                 'link' => $r['link'],
                 'note' => $r['note'],
+                'callback' => pl_self_base() . '/connect.php?act=notify',
                 'appid' => $c['appid'],
                 'appkey_set' => $c['appkey'] !== '',
                 'configured' => $r['mode'] === 'system' ? true : $r['configured'],

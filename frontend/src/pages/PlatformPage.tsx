@@ -599,6 +599,22 @@ function CredentialPanel({ item, onSaved, sysConfig, rainbowConfig }: { item: Pl
         </div>
       ) : null}
 
+      <div className='rounded-2xl border border-sky/25 bg-sky/5 p-3.5'>
+        <p className='text-[12px] font-medium text-sky'>授权回调地址（Redirect URI）</p>
+        <p className='mt-1 text-[11px] leading-relaxed text-white/40'>
+          {mode === 'official'
+            ? '对接官方模式下，请在官方开放平台创建应用时把下方地址原样填入「回调地址 / Redirect URI」，再回到此处填写该平台的 AppID 与 AppKey。'
+            : mode === 'system'
+              ? '对接同系统模式下，实际授权由远端实例发起；此地址是本系统接收 OAuth 回调的入口，可用于与远端实例联调核对。'
+              : '对接彩虹聚合模式下，实际授权由聚合网关代理；此地址是本系统接收 OAuth 回调的入口，可用于与聚合网关联调核对。'}
+        </p>
+        <div className='mt-2 flex items-center gap-1.5'>
+          <input value={item.callback} readOnly onClick={(e) => (e.target as HTMLInputElement).select()} className={cx(FIELD_CLS, 'font-mono text-[11px]')} />
+          <button type='button' onClick={async () => { const ok = await copyText(item.callback); toast.push(ok ? 'success' : 'error', ok ? '回调地址已复制' : '复制失败，请手动选择'); }} className='shrink-0 rounded-xl border border-white/12 bg-white/5 p-2.5 text-white/60 transition hover:bg-white/10 hover:text-white' title='复制回调地址'>
+            <Icon name='copy' size={14} />
+          </button>
+        </div>
+      </div>
       <button
         type='button'
         onClick={save}

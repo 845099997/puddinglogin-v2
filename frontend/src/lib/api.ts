@@ -128,6 +128,7 @@ export type PlatformItem = {
   sort: number;
   link: string;
   note: string;
+  callback: string;
   appid: string;
   appkey_set: boolean;
   configured: boolean;
