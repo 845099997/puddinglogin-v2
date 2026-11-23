@@ -1,6 +1,6 @@
 /*!
  * PuddingLogin 一键登录 SDK v1.0
- * PuddingLogin v2.1.6 - MIT License · https://gitee.com/budingyun6/puddinglogin-v2
+ * PuddingLogin - MIT License · https://gitee.com/budingyun6/puddinglogin-v2
  *
  * 用法：
  *   <script src='https://你的站点/sdk.js'></script>
