@@ -55,6 +55,22 @@ th{color:#8A8FAB;font-weight:500;background:rgba(255,255,255,.02)}
 .tag{display:inline-block;border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:2px 8px;font-size:11.5px;color:#B9BDD4;margin:0 6px 6px 0}
 .note{border-left:3px solid #6B7AE8;background:rgba(107,122,232,.09);padding:12px 16px;border-radius:0 12px 12px 0;font-size:13px;color:#B9BDD4;margin:14px 0}
 .foot{margin-top:52px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);color:#5C6180;font-size:12px;text-align:center}
+@media (prefers-color-scheme: light) {
+  body{background:#F9FBFD;color:#1C2033}
+  a{color:#D96A3E}
+  h2{border-left-color:#D96A3E}
+  h3{color:#1C2033}
+  p,li{color:#555B72}
+  code{background:rgba(0,0,0,.04);color:#C44D2E}
+  pre{background:#F3F5F8;border-color:rgba(0,0,0,.08)}
+  pre code{color:#3A3F52}
+  th,td{border-color:rgba(0,0,0,.06)}
+  th{color:#5C6380;background:rgba(0,0,0,.02)}
+  .tag{border-color:rgba(0,0,0,.1);color:#555B72}
+  .note{background:rgba(107,122,232,.07);color:#555B72}
+  .foot{color:#888DA8;border-color:rgba(0,0,0,.06)}
+  .sub{color:#6B7198}
+}
 </style>
 </head>
 <body>
