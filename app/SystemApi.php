@@ -487,13 +487,30 @@ final class SystemApi
         pl_require_admin();
         $latest = PL_VERSION;
         $remoteError = '';
+        $failedSource = '';
+        // 优先尝试 Gitee（国内），失败回退 GitHub（海外）
         $raw = self::httpGet('https://gitee.com/budingyun6/puddinglogin-v2/raw/master/app/core.php', 8);
         if ($raw === '') {
-            $remoteError = '无法连接 Gitee，版本检测结果仅供本地参考';
+            $raw = self::httpGet('https://raw.githubusercontent.com/845099997/puddinglogin-v2/master/app/core.php', 8);
+            if ($raw === '') {
+                $remoteError = '无法连接 Gitee 与 GitHub，版本检测结果仅供本地参考';
+            } elseif (preg_match("/const PL_VERSION = '([0-9.]+)'/", $raw, $m)) {
+                $latest = $m[1];
+                $failedSource = 'gitee';
+            } else {
+                $remoteError = '远端版本号解析失败';
+            }
         } elseif (preg_match("/const PL_VERSION = '([0-9.]+)'/", $raw, $m)) {
             $latest = $m[1];
         } else {
-            $remoteError = '远端版本号解析失败';
+            // Gitee 返回内容但版本号解析失败，尝试 GitHub
+            $raw = self::httpGet('https://raw.githubusercontent.com/845099997/puddinglogin-v2/master/app/core.php', 8);
+            if ($raw !== '' && preg_match("/const PL_VERSION = '([0-9.]+)'/", $raw, $m)) {
+                $latest = $m[1];
+                $failedSource = 'gitee';
+            } else {
+                $remoteError = '远端版本号解析失败';
+            }
         }
         $pdo = pl_pdo();
         $stats = [
@@ -517,6 +534,7 @@ final class SystemApi
             'latest' => $latest,
             'has_update' => version_compare($latest, PL_VERSION, '>'),
             'remote_error' => $remoteError,
+            'failed_source' => $failedSource,
             'checked_at' => pl_now(),
         ]);
     }
@@ -559,63 +577,69 @@ final class SystemApi
         if (!is_writable(PL_ROOT)) {
             pl_err('站点根目录不可写，无法执行更新');
         }
+        $source = isset($_POST['source']) && in_array($_POST['source'], ['gitee', 'github'], true) ? $_POST['source'] : 'auto';
         $work = PL_ROOT . '/storage/update_' . date('YmdHis') . '_' . mt_rand(1000, 9999);
         if (!@mkdir($work, 0755, true)) {
             pl_err('无法创建临时目录');
         }
         $tar = $work . '/master.tar.gz';
-        $url = 'https://gitee.com/budingyun6/puddinglogin-v2/repository/archive/master.tar.gz';
-        $fp = @fopen($tar, 'wb');
-        if (!$fp) {
-            self::rrmdir($work);
-            pl_err('无法写入更新包');
+        $giteeUrl = 'https://gitee.com/budingyun6/puddinglogin-v2/repository/archive/master.tar.gz';
+        $githubUrl = 'https://github.com/845099997/puddinglogin-v2/archive/refs/heads/master.tar.gz';
+        $repoLinks = "Gitee（国内）: https://gitee.com/budingyun6/puddinglogin-v2\nGitHub（海外）: https://github.com/845099997/puddinglogin-v2";
+        // 根据 source 参数确定下载顺序
+        $order = [];
+        if ($source === 'gitee') {
+            $order = [['url' => $giteeUrl, 'name' => 'Gitee（国内源）']];
+        } elseif ($source === 'github') {
+            $order = [['url' => $githubUrl, 'name' => 'GitHub（海外源）']];
+        } else {
+            $order = [
+                ['url' => $giteeUrl, 'name' => 'Gitee（国内源）'],
+                ['url' => $githubUrl, 'name' => 'GitHub（海外源）'],
+            ];
         }
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_FILE, $fp);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 180);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; PuddingLogin/' . PL_VERSION . ')');
-        $ok = curl_exec($ch);
-        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $err = curl_error($ch);
-        curl_close($ch);
-        fclose($fp);
-        // 校验是否为有效 gzip 归档（魔术字节 \x1f\x8b），防止收到 HTML 反爬页
-        $tarOk = is_file($tar) && filesize($tar) >= 1024;
-        if ($tarOk) {
-            $head = @file_get_contents($tar, false, null, 0, 2);
-            $tarOk = $head !== false && strlen($head) === 2 && $head[0] === "\x1f" && $head[1] === "\x8b";
-            if (!$tarOk) {
-                @unlink($tar);
+        $tarOk = false;
+        $lastError = '';
+        foreach ($order as $src) {
+            $fp = @fopen($tar, 'wb');
+            if (!$fp) {
+                continue;
             }
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_FILE, $fp);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 180);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_URL, $src['url']);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; PuddingLogin/' . PL_VERSION . ')');
+            $ok = curl_exec($ch);
+            $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $err = curl_error($ch);
+            curl_close($ch);
+            fclose($fp);
+            // 校验 gzip 魔术字节 \x1f\x8b，防止收到 HTML 反爬页
+            if ($ok && $code === 200 && is_file($tar) && filesize($tar) >= 1024) {
+                $head = @file_get_contents($tar, false, null, 0, 2);
+                if ($head !== false && strlen($head) === 2 && $head[0] === "\x1f" && $head[1] === "\x8b") {
+                    $tarOk = true;
+                    break;
+                }
+            }
+            $lastError = $src['name'] . ' 下载失败：' . ($err !== '' ? $err : 'HTTP ' . $code);
+            @unlink($tar);
         }
         if (!$tarOk) {
-            // 回退到 GitHub 归档（海外服务器 Gitee 可能返回反爬 HTML）
-            $githubUrl = 'https://github.com/845099997/puddinglogin-v2/archive/refs/heads/master.tar.gz';
-            $fp2 = @fopen($tar, 'wb');
-            if (!$fp2) {
-                self::rrmdir($work);
-                pl_err('无法写入更新包');
+            self::rrmdir($work);
+            $hint = '';
+            if ($source === 'gitee') {
+                $hint = '请切换至海外源（GitHub）重试，或手动更新。';
+            } elseif ($source === 'github') {
+                $hint = '请切换至国内源（Gitee）重试，或手动更新。';
+            } else {
+                $hint = '自动下载均失败，请尝试手动更新。';
             }
-            $ch2 = curl_init($githubUrl);
-            curl_setopt($ch2, CURLOPT_FILE, $fp2);
-            curl_setopt($ch2, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch2, CURLOPT_TIMEOUT, 180);
-            curl_setopt($ch2, CURLOPT_CONNECTTIMEOUT, 10);
-            curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch2, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; PuddingLogin/' . PL_VERSION . ')');
-            $ok2 = curl_exec($ch2);
-            $code2 = (int) curl_getinfo($ch2, CURLINFO_HTTP_CODE);
-            $err2 = curl_error($ch2);
-            curl_close($ch2);
-            fclose($fp2);
-            if (!$ok2 || $code2 !== 200 || !is_file($tar) || filesize($tar) < 1024) {
-                self::rrmdir($work);
-                pl_err('下载更新包失败（已尝试 Gitee 与 GitHub）：' . ($err2 !== '' ? $err2 : 'HTTP ' . $code2));
-            }
+            pl_err($lastError . '\n' . $hint . "\n\n手动更新仓库地址：\n" . $repoLinks);
         }
         try {
             $phar = new \PharData($tar);
