@@ -311,3 +311,4 @@ export default function AdminGroupsPage({ types }: { types: LoginType[] }) {
     </section>
   );
 }
+

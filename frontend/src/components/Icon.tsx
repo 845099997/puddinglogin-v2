@@ -141,3 +141,4 @@ export default function Icon({ name, size = 20, ...rest }: { name: IconName; siz
       return null;
   }
 }
+

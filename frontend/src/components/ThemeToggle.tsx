@@ -42,3 +42,4 @@ export default function ThemeToggle({ className = '', withLabel = false }: Props
     </button>
   );
 }
+

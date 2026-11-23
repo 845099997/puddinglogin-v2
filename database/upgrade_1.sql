@@ -29,3 +29,4 @@ CREATE TABLE IF NOT EXISTS pl_connect_code (
   UNIQUE KEY uk_code (code),
   KEY idx_social (type, social_uid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+

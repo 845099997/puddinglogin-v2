@@ -246,3 +246,4 @@
 
   global.PlLogin = PlLogin;
 })(window);
+

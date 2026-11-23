@@ -409,3 +409,4 @@ final class PlatformApi
         pl_ok(['items' => $items, 'total' => $total, 'page' => $page, 'size' => $size]);
     }
 }
+

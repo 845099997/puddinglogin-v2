@@ -185,3 +185,4 @@ export default function AdminLoginLogsPage({ types }: { types: LoginType[] }) {
     </section>
   );
 }
+

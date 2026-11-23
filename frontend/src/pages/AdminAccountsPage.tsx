@@ -238,3 +238,4 @@ export default function AdminAccountsPage({ types }: { types: LoginType[] }) {
     </section>
   );
 }
+

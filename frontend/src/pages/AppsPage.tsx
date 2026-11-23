@@ -510,3 +510,4 @@ export default function AppsPage({ site }: { site: Site }) {
     </div>
   );
 }
+

@@ -385,3 +385,4 @@ function AdminTicketDetail({ id, onBack }: { id: number; onBack: () => void }) {
     </div>
   );
 }
+

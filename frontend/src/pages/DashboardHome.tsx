@@ -203,3 +203,4 @@ export default function DashboardHome({ user, onGo }: { user: User; onGo: (p: st
     </div>
   );
 }
+

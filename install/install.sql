@@ -278,3 +278,4 @@ INSERT INTO `pl_config` (`k`, `v`) VALUES
 ('group_buy_open', '0');
 
 SET FOREIGN_KEY_CHECKS = 1;
+

@@ -452,3 +452,4 @@ export function TicketDetail({ id, onBack }: { id: number; onBack: () => void })
     </div>
   );
 }
+

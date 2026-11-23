@@ -30,3 +30,4 @@ INSERT INTO `pl_platform` (`type`,`showname`,`mode`,`status`,`sort`,`official_li
 ('gitee','Gitee','official',1,140,'https://gitee.com/oauth/applications',''),
 ('github','GitHub','official',1,150,'https://github.com/settings/developers','')
 ON DUPLICATE KEY UPDATE `showname`=VALUES(`showname`);
+
