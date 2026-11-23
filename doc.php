@@ -25,6 +25,11 @@ $appidShown = $demoAppid !== '' ? $demoAppid : '你的AppID';
 <meta charset='UTF-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1'>
 <title>接入文档 · <?= $h($sitename) ?></title>
+<?php $faviconPath = (string) ($site['favicon_path'] ?? '/favicon.ico'); ?>
+<?php if ($faviconPath !== ''): ?>
+<link rel='icon' href='<?= $h($faviconPath) ?>' />
+<link rel='apple-touch-icon' href='<?= $h($logoPathForHead = (string) ($site['logo_path'] ?? '/logo.png')) ?>' />
+<?php endif; ?>
 <style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -34,7 +39,8 @@ a:hover{text-decoration:underline}
 .wrap{max-width:900px;margin:0 auto;padding:44px 22px 90px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:30px}
 .brand{display:flex;align-items:center;gap:12px}
-.logo{width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,#F6A07A,#E86A6A);display:flex;align-items:center;justify-content:center;font-weight:700;color:#1B1420}
+.logo{width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,#F6A07A,#E86A6A);display:flex;align-items:center;justify-content:center;font-weight:700;color:#1B1420;object-fit:cover;overflow:hidden}
+img.logo{background:transparent}
 h1{font-size:23px;margin:0 0 5px}
 .sub{color:#8A8FAB;font-size:13px;margin:0}
 h2{font-size:18px;margin:36px 0 12px;padding-left:12px;border-left:3px solid #F6A07A}
@@ -55,7 +61,12 @@ th{color:#8A8FAB;font-weight:500;background:rgba(255,255,255,.02)}
 <div class='wrap'>
   <div class='top'>
     <div class='brand'>
-      <div class='logo'>P</div>
+      <?php $logoPath = (string) ($site['logo_path'] ?? '/logo.png'); ?>
+      <?php if ($logoPath !== ''): ?>
+      <img class='logo' src='<?= $h($logoPath) ?>' alt='<?= $h($sitename) ?>' />
+      <?php else: ?>
+      <div class='logo'><?= $h(mb_substr($sitename, 0, 1)) ?></div>
+      <?php endif; ?>
       <div>
         <h1>接入文档</h1>
         <p class='sub'><?= $h($sitename) ?> · 聚合登录 OAuth 2.0 · v<?= $h($version) ?></p>

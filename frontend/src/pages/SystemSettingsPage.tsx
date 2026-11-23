@@ -137,7 +137,7 @@ export default function SystemSettingsPage({ site }: { site: Site }) {
               {data.group === 'cleanup' ? (
                 <CleanupPanel demoOn={site.demo_on} />
               ) : data.group === 'update' ? (
-                <UpdatePanel />
+                <UpdatePanel demoOn={site.demo_on} />
               ) : data.group === 'logo' ? (
                 <LogoPanel form={form} setForm={setForm} fields={data.fields} demoOn={site.demo_on} />
               ) : (
@@ -466,12 +466,14 @@ type UpdateInfo = {
   checks: Array<{ name: string; ok: boolean; detail: string }>;
   latest: string;
   has_update: boolean;
+  remote_error?: string;
   checked_at: string;
 };
 
-function UpdatePanel() {
+function UpdatePanel({ demoOn }: { demoOn: boolean }) {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
   const [info, setInfo] = useState<UpdateInfo | null>(null);
 
   const load = useCallback(() => {
@@ -486,6 +488,20 @@ function UpdatePanel() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const runUpdate = async () => {
+    if (running) return;
+    if (!window.confirm('将立即从 Gitee master 下载并覆盖站点代码（storage 与 .git 不受影响），确定继续？')) return;
+    setRunning(true);
+    const res = await post<{ version_before: string; version_after: string }>('system.update.run', {});
+    setRunning(false);
+    if (res.code === 0) {
+      toast.push('success', res.msg || '更新完成');
+      load();
+    } else {
+      toast.push('error', res.msg || '更新失败');
+    }
+  };
 
   const cards: Array<{ k: string; v: string | number | undefined }> = info
     ? [
@@ -538,6 +554,26 @@ function UpdatePanel() {
             最新版本 {info.latest} · 检测时间 {info.checked_at} ·{' '}
             {info.has_update ? '发现新版本' : '已是最新版本'}
           </p>
+          {info.remote_error ? (
+            <p className='text-[11px] text-amber-300/80'>{info.remote_error}</p>
+          ) : null}
+          {info.has_update ? (
+            <div className='rounded-2xl border border-sky/25 bg-sky/5 p-3.5'>
+              <p className='text-[12px] font-medium text-sky'>更新到 v{info.latest}</p>
+              <p className='mt-1 text-[11px] leading-relaxed text-white/40'>
+                将下载 Gitee master 归档并覆盖站点代码，storage 目录与 .git 保持不变。更新后请刷新页面，若涉及数据库结构变更需按仓库说明手动执行 SQL。
+              </p>
+              <button
+                type='button'
+                onClick={runUpdate}
+                disabled={running || demoOn}
+                className='mt-2.5 inline-flex items-center gap-2 rounded-xl bg-pudding-gradient px-4 py-2 text-[12.5px] font-semibold text-on-pudding transition hover:brightness-105 disabled:opacity-50'
+              >
+                {running ? <Spinner size={13} /> : <Icon name='refresh' size={13} />}
+                {demoOn ? '演示模式已开启，不可更新' : running ? '正在更新…' : '立即更新'}
+              </button>
+            </div>
+          ) : null}
         </>
       ) : null}
     </div>

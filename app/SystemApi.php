@@ -178,13 +178,13 @@ final class SystemApi
             'icon' => 'refresh',
             'desc' => '查看当前版本与检查是否有新版本',
             'fields' => [],
-            'actions' => ['update_check'],
+            'actions' => ['update_check', 'update_run'],
         ],
     ];
 
     public static function dispatch(string $act): void
     {
-        if (pl_demo_on() && in_array($act, ["system.logo.upload", "system.cleanup"], true)) {
+        if (pl_demo_on() && in_array($act, ["system.logo.upload", "system.cleanup", "system.update.run"], true)) {
             pl_demo_guard("系统设置");
         }
         switch ($act) {
@@ -205,6 +205,9 @@ final class SystemApi
                 break;
             case 'system.update.check':
                 self::updateCheck();
+                break;
+            case 'system.update.run':
+                self::updateRun();
                 break;
             default:
                 pl_err('未知的系统设置接口', -4, 404);
@@ -482,6 +485,16 @@ final class SystemApi
     private static function updateCheck(): void
     {
         pl_require_admin();
+        $latest = PL_VERSION;
+        $remoteError = '';
+        $raw = self::httpGet('https://gitee.com/budingyun6/puddinglogin-v2/raw/master/app/core.php', 8);
+        if ($raw === '') {
+            $remoteError = '无法连接 Gitee，版本检测结果仅供本地参考';
+        } elseif (preg_match("/const PL_VERSION = '([0-9.]+)'/", $raw, $m)) {
+            $latest = $m[1];
+        } else {
+            $remoteError = '远端版本号解析失败';
+        }
         $pdo = pl_pdo();
         $stats = [
             'version' => PL_VERSION,
@@ -501,10 +514,150 @@ final class SystemApi
                 ['name' => '前端资源', 'ok' => is_file(PL_ROOT . '/assets/app.js'), 'detail' => is_file(PL_ROOT . '/assets/app.js') ? 'app.js 已构建' : 'app.js 缺失'],
                 ['name' => 'PHP 版本', 'ok' => version_compare(PHP_VERSION, '8.0.0', '>='), 'detail' => '当前 ' . PHP_VERSION],
             ],
-            'latest' => PL_VERSION,
-            'has_update' => false,
+            'latest' => $latest,
+            'has_update' => version_compare($latest, PL_VERSION, '>'),
+            'remote_error' => $remoteError,
             'checked_at' => pl_now(),
         ]);
+    }
+
+    /**
+     * 轻量 HTTP GET，失败返回空串
+     */
+    private static function httpGet(string $url, int $timeout = 10): string
+    {
+        if (!function_exists('curl_init')) {
+            return '';
+        }
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(5, $timeout));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'PuddingLogin/' . PL_VERSION);
+        $body = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        return ($body !== false && $code === 200) ? (string) $body : '';
+    }
+
+    /**
+     * 在线更新：下载 Gitee master 归档并覆盖代码，storage 与 .git 保持不动
+     */
+    private static function updateRun(): void
+    {
+        self::method('POST');
+        $admin = pl_require_admin();
+        pl_check_csrf();
+        if (pl_demo_on()) {
+            pl_demo_guard('在线更新');
+        }
+        if (!class_exists('PharData')) {
+            pl_err('当前 PHP 环境不支持 PharData，无法解压更新包');
+        }
+        if (!is_writable(PL_ROOT)) {
+            pl_err('站点根目录不可写，无法执行更新');
+        }
+        $work = PL_ROOT . '/storage/update_' . date('YmdHis') . '_' . mt_rand(1000, 9999);
+        if (!@mkdir($work, 0755, true)) {
+            pl_err('无法创建临时目录');
+        }
+        $tar = $work . '/master.tar.gz';
+        $url = 'https://gitee.com/budingyun6/puddinglogin-v2/repository/archive/master.tar.gz';
+        $fp = @fopen($tar, 'wb');
+        if (!$fp) {
+            self::rrmdir($work);
+            pl_err('无法写入更新包');
+        }
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_FILE, $fp);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 180);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'PuddingLogin/' . PL_VERSION);
+        $ok = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
+        curl_close($ch);
+        fclose($fp);
+        if (!$ok || $code !== 200 || !is_file($tar) || filesize($tar) < 1024) {
+            self::rrmdir($work);
+            pl_err('下载更新包失败：' . ($err !== '' ? $err : 'HTTP ' . $code));
+        }
+        try {
+            $phar = new \PharData($tar);
+            $phar->extractTo($work, null, true);
+            unset($phar);
+        } catch (Throwable $e) {
+            self::rrmdir($work);
+            pl_err('解压更新包失败：' . $e->getMessage());
+        }
+        $src = '';
+        foreach ((array) @scandir($work) as $d) {
+            if ($d === '.' || $d === '..') continue;
+            if (is_dir($work . '/' . $d) && is_file($work . '/' . $d . '/app/core.php')) {
+                $src = $work . '/' . $d;
+                break;
+            }
+        }
+        if ($src === '') {
+            self::rrmdir($work);
+            pl_err('更新包结构异常，未找到 app/core.php');
+        }
+        $newVersion = '';
+        $core = @file_get_contents($src . '/app/core.php');
+        if (is_string($core) && preg_match("/const PL_VERSION = '([0-9.]+)'/", $core, $m)) {
+            $newVersion = $m[1];
+        }
+        $skip = ['storage', '.git'];
+        self::syncDir($src, PL_ROOT, $skip);
+        self::rrmdir($work);
+        if (function_exists('opcache_reset')) {
+            @opcache_reset();
+        }
+        clearstatcache(true);
+        pl_admin_log((int) $admin['uid'], 'system.update', '在线更新至 ' . ($newVersion !== '' ? $newVersion : '未知版本'));
+        pl_ok([
+            'version_before' => PL_VERSION,
+            'version_after' => $newVersion,
+            'files_synced' => true,
+        ], '更新完成' . ($newVersion !== '' ? '，当前版本 ' . $newVersion : '，请刷新页面查看'));
+    }
+
+    private static function syncDir(string $src, string $dst, array $skip): void
+    {
+        $items = @scandir($src);
+        if (!$items) return;
+        foreach ($items as $it) {
+            if ($it === '.' || $it === '..') continue;
+            if (in_array($it, $skip, true)) continue;
+            $sp = $src . '/' . $it;
+            $dp = $dst . '/' . $it;
+            if (is_dir($sp)) {
+                if (!is_dir($dp)) @mkdir($dp, 0755, true);
+                self::syncDir($sp, $dp, $skip);
+            } elseif (is_file($sp)) {
+                @copy($sp, $dp);
+                @chmod($dp, 0644);
+            }
+        }
+    }
+
+    private static function rrmdir(string $dir): void
+    {
+        if (!is_dir($dir)) return;
+        $items = @scandir($dir);
+        if ($items) {
+            foreach ($items as $it) {
+                if ($it === '.' || $it === '..') continue;
+                $p = $dir . '/' . $it;
+                if (is_dir($p)) self::rrmdir($p);
+                else @unlink($p);
+            }
+        }
+        @rmdir($dir);
     }
 }
 

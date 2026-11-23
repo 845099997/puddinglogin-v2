@@ -1,17 +1,19 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import Icon from '../components/Icon';
+import Icon, { type IconName } from '../components/Icon';
 import ThemeToggle from '../components/ThemeToggle';
 import { post, type Site, type User } from '../lib/api';
 import { cx, useToast } from '../lib/ui';
 
-const NAV = [
-  { key: 'dashboard', label: '概览', icon: 'dashboard' as const },
-  { key: 'apps', label: '我的应用', icon: 'apps' as const },
-  { key: 'accounts', label: '授权账号', icon: 'accounts' as const },
-  { key: 'logs', label: '登录日志', icon: 'logs' as const },
-  { key: 'tickets', label: '我的工单', icon: 'mail' as const },
-  { key: 'test', label: '登录测试', icon: 'refresh' as const },
-  { key: 'profile', label: '账号资料', icon: 'profile' as const },
+type NavItem = { key: string; label: string; icon: IconName; href?: string };
+const NAV: NavItem[] = [
+  { key: 'dashboard', label: '概览', icon: 'dashboard' },
+  { key: 'apps', label: '我的应用', icon: 'apps' },
+  { key: 'accounts', label: '授权账号', icon: 'accounts' },
+  { key: 'logs', label: '登录日志', icon: 'logs' },
+  { key: 'tickets', label: '我的工单', icon: 'mail' },
+  { key: 'test', label: '登录测试', icon: 'refresh' },
+  { key: 'profile', label: '账号资料', icon: 'profile' },
+  { key: 'doc', label: '开发文档', icon: 'logs', href: '/doc.php' },
 ];
 
 
@@ -65,30 +67,46 @@ export default function DashboardLayout({
       <div className='flex items-center gap-3 px-5 py-6'>
         <img src={site.logo_path || '/logo.png'} alt={site.sitename} className='h-10 w-10 rounded-2xl object-contain shadow-glow' />
         <div className='min-w-0'>
-          <div className='truncate text-[15px] font-semibold text-cream'>PuddingLogin</div>
+          <div className='truncate text-[15px] font-semibold text-cream'>{site.sitename}</div>
           <div className='truncate text-[11px] uppercase tracking-[0.18em] text-white/30'>Console</div>
         </div>
       </div>
 
       <nav className='flex-1 space-y-1 px-3'>
-        {items.map((n) => (
-          <button
-            key={n.key}
-            type='button'
-            onClick={() => onGo(n.key)}
-            className={cx(
-              'group flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[14px] transition',
-              current === n.key
-                ? 'bg-white/[0.08] text-cream shadow-soft'
-                : 'text-white/45 hover:bg-white/[0.04] hover:text-white/80'
-            )}
-          >
-            <span className={cx('transition', current === n.key ? 'text-pudding-300' : 'text-white/35 group-hover:text-white/60')}>
-              <Icon name={n.icon} size={18} />
-            </span>
-            <span className='font-medium'>{n.label}</span>
-          </button>
-        ))}
+        {items.map((n) =>
+          n.href ? (
+            <a
+              key={n.key}
+              href={n.href}
+              target='_blank'
+              rel='noreferrer'
+              className='group flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[14px] text-white/45 transition hover:bg-white/[0.04] hover:text-white/80'
+            >
+              <span className='text-white/35 transition group-hover:text-white/60'>
+                <Icon name={n.icon} size={18} />
+              </span>
+              <span className='font-medium'>{n.label}</span>
+              <Icon name='external' size={12} className='ml-auto text-white/25' />
+            </a>
+          ) : (
+            <button
+              key={n.key}
+              type='button'
+              onClick={() => onGo(n.key)}
+              className={cx(
+                'group flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[14px] transition',
+                current === n.key
+                  ? 'bg-white/[0.08] text-cream shadow-soft'
+                  : 'text-white/45 hover:bg-white/[0.04] hover:text-white/80'
+              )}
+            >
+              <span className={cx('transition', current === n.key ? 'text-pudding-300' : 'text-white/35 group-hover:text-white/60')}>
+                <Icon name={n.icon} size={18} />
+              </span>
+              <span className='font-medium'>{n.label}</span>
+            </button>
+          )
+        )}
       </nav>
 
       <div className='border-t border-white/8 p-3'>
