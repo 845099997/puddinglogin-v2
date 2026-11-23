@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /**
- * PuddingLogin v2.1.6 - MIT License
+ * PuddingLogin v2.1.8 - MIT License
  * 开源统一身份认证系统 · https://gitee.com/budingyun6/puddinglogin-v2
  */
 
