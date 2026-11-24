@@ -420,8 +420,16 @@ final class SystemApi
         $tmp = (string) $f['tmp_name'];
         $mime = function_exists('mime_content_type') ? (string) mime_content_type($tmp) : '';
         $allow = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/svg+xml' => 'svg', 'image/webp' => 'webp', 'image/x-icon' => 'ico', 'image/vnd.microsoft.icon' => 'ico'];
-        if (!isset($allow[$mime])) {
-            pl_err('仅支持 PNG / JPEG / SVG / WEBP / ICO');
+        $extMap = ['png' => 'png', 'jpg' => 'jpg', 'jpeg' => 'jpg', 'svg' => 'svg', 'webp' => 'webp', 'ico' => 'ico'];
+        if (isset($allow[$mime])) {
+            $ext = $allow[$mime];
+        } else {
+            // mime_content_type 不可用或返回未知值，回退文件名扩展名校验
+            $orig = strtolower(pathinfo((string) $f['name'], PATHINFO_EXTENSION));
+            if (!isset($extMap[$orig])) {
+                pl_err('仅支持 PNG / JPEG / SVG / WEBP / ICO');
+            }
+            $ext = $extMap[$orig];
         }
         $kind = pl_in('kind', 'logo');
         if (!in_array($kind, ['logo', 'favicon'], true)) {

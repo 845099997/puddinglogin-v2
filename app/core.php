@@ -28,7 +28,7 @@ define('PL_SYS_KEY', $plSysKey);
 unset($plDbFile, $plDbConf, $plSysKey);
 // 版本号规则：三段式 主.次.修订，修订位满 9 进 1（2.0.9 → 2.1.0，2.9.9 → 3.0.0）
 // 每次功能更新或新增修改都必须递增此版本号。
-const PL_VERSION = '2.2.1';
+const PL_VERSION = '2.2.2';
 
 date_default_timezone_set('Asia/Shanghai');
 mb_internal_encoding('UTF-8');
